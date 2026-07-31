@@ -11,7 +11,7 @@ Registrar gastos e ingresos de dinero de una manera simple mediante un formulari
 - RF-01: El sistema debe permitir registrar un gasto indicando monto, categoría y fecha (por defecto, la fecha actual) mediante un formulario.
 - RF-02: El sistema debe permitir registrar un ingreso indicando monto, categoría y fecha (por defecto, la fecha actual) mediante un formulario.
 - RF-03: El sistema debe mostrar un dashboard (en una seccion dedicada al mismo) con el total de gastos agrupado por categoría, representado gráficamente (el tipo de gráfico específico queda a criterio de diseño de UI).
-- RF-04: El sistema debe mostrar en el dashboard un balance (ingresos - egresos). ACA METI UN CAMBIO DE PRUEBA
+- RF-04: El sistema debe mostrar en el dashboard un balance (ingresos - egresos).
 - RF-05: El sistema debe permitir filtrar los datos del dashboard por fecha tambien.
 - RF-06: El sistema debe listar los movimientos individuales (gastos e ingresos).
 - RF-07: El sistema debe listar los movimientos individuales filtrados por categoría(por defecto todas las categorias).
