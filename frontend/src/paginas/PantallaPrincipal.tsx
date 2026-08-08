@@ -3,12 +3,16 @@ import {
   api,
   ErrorApi,
   type Categoria,
+  type Dashboard,
+  type FiltrosDashboard,
   type FiltrosMovimientos,
   type Moneda,
   type Movimiento,
 } from '../api/cliente'
 import { useAutenticacion } from '../auth/contexto'
 import { PanelCategorias } from '../categorias/PanelCategorias'
+import { PanelDashboard } from '../dashboard/PanelDashboard'
+import { ResumenDelMes } from '../dashboard/ResumenDelMes'
 import { FormularioMovimiento } from '../movimientos/FormularioMovimiento'
 import { ListadoMovimientos } from '../movimientos/ListadoMovimientos'
 import { mesActual } from '../utiles/fechas'
@@ -27,6 +31,13 @@ export function PantallaPrincipal() {
     categoriaId: '',
     moneda: '',
   }))
+  const [dashboard, setDashboard] = useState<Dashboard | null>(null)
+  const [resumenDelMes, setResumenDelMes] = useState<Dashboard | null>(null)
+  // RF-21 y RF-30: el dashboard tiene su propio filtro, que arranca en el mes actual.
+  const [filtrosDashboard, setFiltrosDashboard] = useState<FiltrosDashboard>(() => ({
+    ...mesActual(),
+    moneda: '',
+  }))
   const [enEdicion, setEnEdicion] = useState<Movimiento | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,6 +54,16 @@ export function PantallaPrincipal() {
     setMovimientos(await api.movimientos.listar(filtros))
   }, [filtros])
 
+  const cargarDashboard = useCallback(async () => {
+    setDashboard(await api.dashboard.obtener(filtrosDashboard))
+  }, [filtrosDashboard])
+
+  // RF-22 / AC-30: el resumen es el mismo endpoint pedido con el mes actual, sin importar
+  // qué período esté mirando el dashboard.
+  const cargarResumenDelMes = useCallback(async () => {
+    setResumenDelMes(await api.dashboard.obtener({ ...mesActual(), moneda: '' }))
+  }, [])
+
   useEffect(() => {
     cargarCategorias().catch(() => setError('No se pudieron cargar las categorías.'))
   }, [cargarCategorias])
@@ -55,10 +76,23 @@ export function PantallaPrincipal() {
     cargarMovimientos().catch(() => setError('No se pudieron cargar los movimientos.'))
   }, [cargarMovimientos])
 
+  useEffect(() => {
+    cargarDashboard().catch(() => setError('No se pudo cargar el dashboard.'))
+  }, [cargarDashboard])
+
+  useEffect(() => {
+    cargarResumenDelMes().catch(() => setError('No se pudo cargar el resumen del mes.'))
+  }, [cargarResumenDelMes])
+
+  /** Todo lo que toca movimientos mueve también los totales: se recargan juntos. */
+  async function recargarTodo() {
+    await Promise.all([cargarMovimientos(), cargarDashboard(), cargarResumenDelMes()])
+  }
+
   async function despuesDeGuardar() {
     setEnEdicion(null)
     setError(null)
-    await cargarMovimientos()
+    await recargarTodo()
   }
 
   async function eliminar(movimiento: Movimiento) {
@@ -67,7 +101,7 @@ export function PantallaPrincipal() {
       await api.movimientos.eliminar(movimiento.id)
       // Si se estaba editando justo ese, el formulario vuelve a modo alta.
       setEnEdicion((actual) => (actual?.id === movimiento.id ? null : actual))
-      await cargarMovimientos()
+      await recargarTodo()
     } catch (fallo: unknown) {
       setError(fallo instanceof ErrorApi ? fallo.message : 'No se pudo eliminar el movimiento.')
     }
@@ -79,7 +113,7 @@ export function PantallaPrincipal() {
    */
   async function despuesDeTocarCategorias() {
     await cargarCategorias()
-    await cargarMovimientos()
+    await recargarTodo()
   }
 
   return (
@@ -109,6 +143,8 @@ export function PantallaPrincipal() {
           onCancelar={() => setEnEdicion(null)}
         />
 
+        <ResumenDelMes resumen={resumenDelMes} monedas={monedas} />
+
         <PanelCategorias categorias={categorias} onCambio={despuesDeTocarCategorias} />
 
         <ListadoMovimientos
@@ -119,6 +155,13 @@ export function PantallaPrincipal() {
           onCambiarFiltros={setFiltros}
           onEditar={setEnEdicion}
           onEliminar={(movimiento) => void eliminar(movimiento)}
+        />
+
+        <PanelDashboard
+          dashboard={dashboard}
+          monedas={monedas}
+          filtros={filtrosDashboard}
+          onCambiarFiltros={setFiltrosDashboard}
         />
       </main>
     </div>

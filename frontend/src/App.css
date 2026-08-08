@@ -366,3 +366,147 @@
   font: inherit;
   font-size: 0.9rem;
 }
+
+/* --- Resumen del mes (RF-22) --- */
+
+.resumen-mes {
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.resumen-mes .monedas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.resumen-mes .moneda {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.resumen-mes .nombre {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.resumen-mes .cifras {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.3rem;
+  font-size: 0.9rem;
+}
+
+/* --- Dashboard (RF-19 a RF-21) --- */
+
+.dashboard {
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.dashboard .filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Cada moneda es un bloque cerrado y se ve como tal: nada de lo que hay en uno se
+   puede sumar con lo del otro (RF-29). */
+.dashboard .moneda {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  margin-top: 1.25rem;
+}
+
+.dashboard .moneda:first-of-type {
+  padding-top: 0;
+  border-top: none;
+  margin-top: 0;
+}
+
+.dashboard h3 {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text);
+}
+
+.dashboard h4 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-h);
+}
+
+.dashboard .totales {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.dashboard .total {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.dashboard .total .etiqueta {
+  font-size: 0.75rem;
+}
+
+.dashboard .total strong {
+  font-size: 1.15rem;
+}
+
+.ingreso {
+  color: #16a34a;
+}
+
+.gasto {
+  color: #dc2626;
+}
+
+/* --- Gráfico de gastos por categoría (RF-19) ---
+   Una sola serie: el color no codifica identidad, la longitud codifica magnitud.
+   Por eso todas las barras van del mismo tono y no hay leyenda. */
+
+.grafico {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grafico .etiquetas {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.grafico .valor {
+  color: var(--text-h);
+  white-space: nowrap;
+}
+
+.grafico .riel {
+  height: 8px;
+  margin-top: 0.25rem;
+  border-radius: 4px;
+  background: var(--code-bg);
+}
+
+.grafico .barra {
+  height: 100%;
+  min-width: 4px;
+  /* Extremos redondeados de 4px, anclados a la línea de base. */
+  border-radius: 4px;
+  background: var(--accent);
+}

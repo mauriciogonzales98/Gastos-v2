@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using GestionGastos.Api.Categorias;
+using GestionGastos.Api.Dashboard;
 using GestionGastos.Api.Entidades;
 using GestionGastos.Api.Monedas;
 using GestionGastos.Api.Movimientos;
@@ -118,6 +119,16 @@ public static class ClienteApi
         respuesta.EnsureSuccessStatusCode();
         return await respuesta.LeerComo<MovimientoResponse>();
     }
+
+    // --- Dashboard ---
+
+    public static async Task<DashboardResponse> Dashboard(this HttpClient cliente, string consulta = "") =>
+        await (await cliente.GetAsync($"/dashboard{consulta}")).LeerComo<DashboardResponse>();
+
+    /// <summary>El bloque de una moneda, que es lo que mira la mayoria de los tests.</summary>
+    public static async Task<ResumenDeMoneda> DashboardDe(
+        this HttpClient cliente, string moneda, string consulta = "") =>
+        (await cliente.Dashboard(consulta)).Monedas.Single(m => m.Moneda == moneda);
 }
 
 /// <summary>Fechas de referencia para los tests que dependen del "mes actual" (RF-18).</summary>

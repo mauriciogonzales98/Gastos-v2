@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using GestionGastos.Api.Autenticacion;
 using GestionGastos.Api.Categorias;
+using GestionGastos.Api.Comun;
 using GestionGastos.Api.Data;
 using GestionGastos.Api.Entidades;
+using GestionGastos.Api.Monedas;
 using Microsoft.EntityFrameworkCore;
 
 namespace GestionGastos.Api.Movimientos;
@@ -35,7 +37,7 @@ public static class EndpointsMovimientos
         Guid? categoriaId = null,
         string? moneda = null)
     {
-        var (inicio, fin) = RangoPedidoOMesActual(desde, hasta);
+        var (inicio, fin) = Periodo.PedidoOMesActual(desde, hasta);
 
         if (inicio > fin)
         {
@@ -49,13 +51,13 @@ public static class EndpointsMovimientos
 
         if (!string.IsNullOrWhiteSpace(moneda))
         {
-            monedaPedida = await NormalizarMoneda(moneda, db, ct);
+            monedaPedida = await ConsultasDeMonedas.Normalizar(moneda, db, ct);
 
             if (monedaPedida is null)
             {
                 return Results.ValidationProblem(new Dictionary<string, string[]>
                 {
-                    ["moneda"] = [await MensajeDeMonedaInvalida(db, ct)],
+                    ["moneda"] = [await ConsultasDeMonedas.MensajeDeCodigoInvalido(db, ct)],
                 });
             }
         }
@@ -85,20 +87,6 @@ public static class EndpointsMovimientos
             .ToListAsync(ct);
 
         return Results.Ok(movimientos);
-    }
-
-    /// <summary>
-    /// RF-18 / AC-25: el default es el mes actual. Si viene solo un extremo, el otro se
-    /// completa con el borde del mes de ese extremo, para no dejar el rango abierto.
-    /// </summary>
-    public static (DateOnly Inicio, DateOnly Fin) RangoPedidoOMesActual(DateOnly? desde, DateOnly? hasta)
-    {
-        var referencia = desde ?? hasta ?? DateOnly.FromDateTime(DateTime.Now);
-        var primeroDelMes = new DateOnly(referencia.Year, referencia.Month, 1);
-
-        return (
-            desde ?? primeroDelMes,
-            hasta ?? primeroDelMes.AddMonths(1).AddDays(-1));
     }
 
     /// <summary>RF-10 y RF-11: alta de un gasto o un ingreso.</summary>
@@ -210,12 +198,12 @@ public static class EndpointsMovimientos
         // RF-25 / AC-38: omitir la moneda vale y significa la predeterminada del catalogo.
         // Un codigo que no este en el catalogo, no (RF-26 / AC-39).
         var moneda = string.IsNullOrWhiteSpace(pedido.Moneda)
-            ? await db.Monedas.SingleAsync(m => m.EsPredeterminada, ct)
-            : await BuscarMoneda(pedido.Moneda, db, ct);
+            ? await ConsultasDeMonedas.Predeterminada(db, ct)
+            : await ConsultasDeMonedas.Buscar(pedido.Moneda, db, ct);
 
         if (moneda is null)
         {
-            errores["moneda"] = [await MensajeDeMonedaInvalida(db, ct)];
+            errores["moneda"] = [await ConsultasDeMonedas.MensajeDeCodigoInvalido(db, ct)];
         }
 
         if (pedido.Monto is not { } monto)
@@ -264,29 +252,6 @@ public static class EndpointsMovimientos
         var fecha = pedido.Fecha ?? DateOnly.FromDateTime(DateTime.Now);
 
         return ((pedido.Monto!.Value, moneda, fecha, categoria!), null);
-    }
-
-    /// <summary>Busca una moneda del catalogo por codigo, sin distinguir mayusculas.</summary>
-    private static Task<Moneda?> BuscarMoneda(string codigo, GestionGastosDbContext db, CancellationToken ct)
-    {
-        var normalizado = codigo.Trim().ToUpperInvariant();
-        return db.Monedas.SingleOrDefaultAsync(m => m.Codigo == normalizado, ct);
-    }
-
-    /// <summary>Igual que <see cref="BuscarMoneda"/> pero devuelve solo el codigo canonico.</summary>
-    private static async Task<string?> NormalizarMoneda(
-        string codigo, GestionGastosDbContext db, CancellationToken ct) =>
-        (await BuscarMoneda(codigo, db, ct))?.Codigo;
-
-    /// <summary>
-    /// El mensaje enumera el catalogo en vez de nombrar dos monedas fijas: cuando se
-    /// sume una, el error se actualiza solo.
-    /// </summary>
-    private static async Task<string> MensajeDeMonedaInvalida(
-        GestionGastosDbContext db, CancellationToken ct)
-    {
-        var codigos = await db.Monedas.OrderBy(m => m.Orden).Select(m => m.Codigo).ToListAsync(ct);
-        return $"La moneda tiene que ser una de: {string.Join(", ", codigos)}.";
     }
 
     private static MovimientoResponse Responder(Movimiento movimiento, Categoria categoria) =>

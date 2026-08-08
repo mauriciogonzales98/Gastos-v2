@@ -101,6 +101,34 @@ export type DatosMovimiento = {
   categoriaId: string
 }
 
+export type TotalPorCategoria = {
+  categoriaId: string
+  categoriaNombre: string
+  total: number
+}
+
+/** Los números de una moneda. Nada de acá se suma con lo de otra moneda (RF-29). */
+export type ResumenDeMoneda = {
+  moneda: CodigoMoneda
+  totalIngresos: number
+  totalGastos: number
+  balance: number
+  gastosPorCategoria: TotalPorCategoria[]
+}
+
+export type Dashboard = {
+  desde: string
+  hasta: string
+  monedas: ResumenDeMoneda[]
+}
+
+export type FiltrosDashboard = {
+  desde: string
+  hasta: string
+  /** Vacio = todas las monedas (RF-30). */
+  moneda: CodigoMoneda | ''
+}
+
 export type FiltrosMovimientos = {
   desde: string
   hasta: string
@@ -130,6 +158,14 @@ export const api = {
 
   monedas: {
     listar: () => pedir<Moneda[]>('/monedas'),
+  },
+
+  dashboard: {
+    obtener: ({ desde, hasta, moneda }: FiltrosDashboard) => {
+      const parametros = new URLSearchParams({ desde, hasta })
+      if (moneda) parametros.set('moneda', moneda)
+      return pedir<Dashboard>(`/dashboard?${parametros.toString()}`)
+    },
   },
 
   categorias: {

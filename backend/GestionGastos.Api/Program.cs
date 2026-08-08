@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using GestionGastos.Api.Autenticacion;
 using GestionGastos.Api.Categorias;
+using GestionGastos.Api.Dashboard;
 using GestionGastos.Api.Data;
 using GestionGastos.Api.Monedas;
 using GestionGastos.Api.Movimientos;
@@ -56,6 +57,7 @@ app.MapearEndpointsDeAutenticacion();
 app.MapearEndpointsDeCategorias();
 app.MapearEndpointsDeMonedas();
 app.MapearEndpointsDeMovimientos();
+app.MapearEndpointsDeDashboard();
 
 app.Run();
 

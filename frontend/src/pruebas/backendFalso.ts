@@ -1,5 +1,5 @@
 import { vi } from 'vitest'
-import type { Categoria, Moneda, Movimiento, Usuario } from '../api/cliente'
+import type { Categoria, Dashboard, Moneda, Movimiento, Usuario } from '../api/cliente'
 
 export type Pedido = {
   metodo: string
@@ -111,11 +111,25 @@ export function movimiento(parcial: Partial<Movimiento> = {}): Movimiento {
   }
 }
 
+/** Dashboard en cero: el default para los tests que no miran totales. */
+export const DASHBOARD_VACIO: Dashboard = {
+  desde: '2026-08-01',
+  hasta: '2026-08-31',
+  monedas: MONEDAS.map((moneda) => ({
+    moneda: moneda.codigo,
+    totalIngresos: 0,
+    totalGastos: 0,
+    balance: 0,
+    gastosPorCategoria: [],
+  })),
+}
+
 /** Arma un backend con la sesion abierta, el catalogo y el listado que se le pase. */
 export function backendConSesion(movimientos: Movimiento[] = []): BackendFalso {
   return new BackendFalso()
     .responder('GET /auth/me', { estado: 200, cuerpo: USUARIO })
     .responder('GET /categorias', { estado: 200, cuerpo: CATEGORIAS })
     .responder('GET /monedas', { estado: 200, cuerpo: MONEDAS })
+    .responder('GET /dashboard', { estado: 200, cuerpo: DASHBOARD_VACIO })
     .responder('GET /movimientos', { estado: 200, cuerpo: movimientos })
 }
