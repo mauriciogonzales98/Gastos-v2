@@ -1,6 +1,6 @@
 # MEMORIA.md — estado del proyecto
 
-Bitácora para retomar el trabajo entre sesiones. Última actualización: 2026-08-07.
+Bitácora para retomar el trabajo entre sesiones. Última actualización: 2026-08-08.
 
 ## Dónde estamos
 
@@ -8,15 +8,18 @@ Bitácora para retomar el trabajo entre sesiones. Última actualización: 2026-0
 (`chore: armar andamiaje de backend .net 10, frontend react y healthchecks`),
 ya en `origin/main`.
 
-**Features 1 y 2 terminadas y verificadas contra MySQL, sin commitear.** Migraciones
-`CrearUsuarios` y `CrearCategoriasYMovimientos` aplicadas; los dos checkpoints pasaron
-de punta a punta. 53 tests de xUnit y 26 de Vitest en verde.
+**Features 1 y 2 terminadas, commiteadas y pusheadas** (`7a837c1`, `483429a`).
 
-Lo próximo es commitear y arrancar la **feature 3 (dashboard y resumen)**.
+**Soporte de varias monedas implementado, sin commitear.** El PRD se actualizó a la
+versión 3 antes de tocar código. La moneda es una **tabla catálogo** (`Monedas`), no un
+enum: sumar una es insertar una fila. 70 tests de xUnit y 32 de Vitest en verde.
+
+Lo próximo es commitear y arrancar la **feature 3 (dashboard y resumen)**, que ya nace
+con los totales abiertos por moneda.
 
 ## Plan general
 
-Las 22 RF del PRD se agrupan en 3 features core. Cada una se cierra con un
+Las RF del PRD se agrupan en 3 features core (más el agregado de monedas). Cada una se cierra con un
 checkpoint verificable antes de pasar a la siguiente.
 
 ### Paso 0 — Andamiaje ✅ COMPLETADO
@@ -30,7 +33,7 @@ checkpoint verificable antes de pasar a la siguiente.
       credenciales versionadas).
 - [x] Checkpoint: `/health` y `/health/db` responden 200.
 
-### Feature 1 — Cuentas y autenticación (RF-01 a RF-05, RNF-03, RNF-04) ⬅️ CASI
+### Feature 1 — Cuentas y autenticación (RF-01 a RF-05, RNF-03, RNF-04) ✅ COMPLETADA
 
 - [x] 1.1 Entidad `Usuario` (`Entidades/Usuario.cs`) + migración `CrearUsuarios` en
       `Data/Migraciones`, ya aplicada. Hash bcrypt con factor 12 (RNF-03).
@@ -75,7 +78,36 @@ gastos Comida, Transporte, Vivienda, Servicios, Salud, Ocio, Otros; ingresos Sue
 Ingreso extra, Otros. Moneda única, 2 decimales. El movimiento **no guarda su tipo**: lo
 hereda de la categoría, así no pueden quedar en desacuerdo.
 
-### Feature 3 — Dashboard y resumen (RF-19 a RF-22, RNF-01) ⬅️ SIGUIENTE
+### Monedas (RF-24 a RF-32) ✅ COMPLETADA — 2026-08-08
+
+Pedido fuera del PRD original ("múltiples monedas" estaba en Fuera de Alcance). Se
+actualizó el PRD **primero** (versión 3) y después se implementó.
+
+- [x] Tabla `Monedas` (`Codigo` ISO 4217, `Nombre`, `Simbolo`, `Decimales`,
+      `EsPredeterminada`, `Orden`) sembrada con ARS y USD, y `Movimiento.MonedaCodigo`
+      con foreign key. `GET /monedas` expone el catálogo.
+- [x] Migraciones `AgregarMonedaAMovimientos` y `ConvertirMonedaEnCatalogo`, aplicadas.
+      Los movimientos previos quedaron en ARS.
+- [x] Pesos por defecto al crear (AC-38), rechazo de moneda inválida (AC-39), moneda
+      editable (AC-47) y filtro `?moneda=` con las dos por defecto (AC-45).
+- [x] Frontend: selector en el formulario, símbolo en cada fila (`$` / `US$`) y filtro.
+- [x] Tests: 14 de xUnit + 6 de Vitest. **AC-49** inserta una tercera moneda solo como
+      dato y verifica que quede usable de punta a punta: es lo que sostiene el diseño.
+- [x] Verificado contra MySQL con el round-trip completo de las migraciones (Up → Down →
+      Up): un movimiento en USD sobrevive intacto, así que las dos ramas de traducción
+      (`Pesos`→`ARS` y `Dolares`→`USD`) quedan probadas sobre datos reales.
+
+**Decisiones**: catálogo en tabla, no enum, porque van a sumarse monedas; códigos ISO 4217
+("ARS", "USD") porque "Pesos" es ambiguo; la predeterminada y los decimales son datos de la
+fila, no constantes; el frontend arma selector, filtro y formato desde `GET /monedas`.
+La moneda se puede corregir sin borrar el movimiento; filtro con "todas" por defecto; las
+categorías son compartidas entre monedas.
+**No hay conversión**: ningún total suma montos de monedas distintas (RF-29).
+
+AC-41, AC-42, AC-43 y AC-46 (que los totales del dashboard no se mezclen) quedan para la
+feature 3, que es donde existe el dashboard.
+
+### Feature 3 — Dashboard y resumen (RF-19 a RF-22, RF-29, RF-30, RNF-01) ⬅️ SIGUIENTE
 
 - [ ] 3.1 `GET /dashboard?desde&hasta`: totales por categoría, ingresos, gastos y
       balance **agregados en SQL**, no en el cliente (RF-19 a RF-21).
@@ -132,6 +164,20 @@ Comprobado al cerrar el paso 0: `dotnet build` 0 errores / 0 warnings,
 
 ## Cosas aprendidas (no repetir)
 
+- **EF no sabe migrar datos.** Al cambiar la forma de una columna genera un DROP + ADD que
+  pierde los valores: la traducción (`'Pesos'` → `'ARS'`) hay que escribirla a mano con
+  `migrationBuilder.Sql` antes de borrar la columna vieja.
+- **Al agregar una columna NOT NULL, EF genera `defaultValue: ""`.** Para un enum guardado
+  como texto eso deja las filas viejas con un valor inválido que revienta al leerlas: hay
+  que editar la migración a mano y poner el default real.
+- **MySQL no deja tirar un índice que sostiene una foreign key.** Al reemplazar
+  `(UsuarioId, Fecha)` por `(UsuarioId, Fecha, Moneda)` hubo que invertir el orden que
+  generó EF: primero crear el nuevo, después borrar el viejo.
+- **`Enum.TryParse` acepta el índice numérico**, así que `"0"` pasa como el primer valor
+  del enum. Si la API recibe nombres, hay que descartar los dígitos aparte.
+- **`TaskStop` no mata el proceso de Windows**, solo el wrapper de WSL. La API queda viva
+  y el build siguiente falla con `MSB3027` (archivo bloqueado). Se baja con
+  `cmd.exe /c "taskkill /F /IM GestionGastos.Api.exe"`.
 - **Los formularios van con `noValidate`.** La validación nativa del navegador cancela el
   submit en silencio (un `min`/`step` incumplido y no pasa nada), y varios AC piden que el
   rechazo **muestre el motivo**. Los mensajes los da el formulario, no el navegador.

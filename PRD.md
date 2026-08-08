@@ -1,7 +1,10 @@
 # PRD-001: Gestion de Gastos — Aplicacion para el registro y gestion de gastos personales
 
-> Versión 2 del PRD, endurecida contra el template y el checklist de calidad del curso.
-> La versión anterior quedó en el historial de Git, en el commit `c681a0c`.
+> Versión 3 del PRD: agrega soporte de varias monedas (inicialmente pesos y dólares) con
+> totales separados, sin conversión. Los RF y AC nuevos se numeran al final (RF-23+, AC-37+) en
+> lugar de insertarse en el medio, para no invalidar las referencias que ya existen en el
+> código y los tests.
+> Las versiones anteriores quedaron en el historial de Git (`c681a0c`, `093fd1a`).
 
 ## Contexto y Problema
 
@@ -44,25 +47,35 @@ datos son privados y solo él los ve.
 
 ### Registro de movimientos
 
-- RF-10: El sistema debe permitir registrar un gasto indicando monto, categoría y fecha mediante un formulario.
-- RF-11: El sistema debe permitir registrar un ingreso indicando monto, categoría y fecha mediante un formulario.
+- RF-10: El sistema debe permitir registrar un gasto indicando monto, moneda, categoría y fecha mediante un formulario.
+- RF-11: El sistema debe permitir registrar un ingreso indicando monto, moneda, categoría y fecha mediante un formulario.
 - RF-12: El sistema debe proponer la fecha actual como valor por defecto del campo fecha en el formulario de registro.
-- RF-13: El sistema debe rechazar el registro de un movimiento cuyo monto no sea un número mayor a cero con hasta dos decimales, o que no tenga categoría asignada.
-- RF-14: El sistema debe permitir modificar el monto, la categoría y la fecha de un movimiento propio ya registrado.
+- RF-13: El sistema debe rechazar el registro de un movimiento cuyo monto no sea un número mayor a cero con hasta dos decimales.
+- RF-14: El sistema debe permitir modificar el monto, la moneda, la categoría y la fecha de un movimiento propio ya registrado.
 - RF-15: El sistema debe permitir eliminar un movimiento propio ya registrado.
+- RF-23: El sistema debe rechazar el registro de un movimiento que no tenga categoría asignada.
+- RF-24: El sistema debe permitir registrar cada movimiento en una de las monedas del catálogo.
+- RF-25: El sistema debe proponer la moneda marcada como predeterminada en el catálogo como valor por defecto del campo moneda del formulario de registro.
+- RF-26: El sistema debe rechazar el registro de un movimiento cuya moneda no esté en el catálogo.
+- RF-31: El sistema debe ofrecer un catálogo de monedas, no modificable por el usuario, que contiene inicialmente pesos y dólares.
+- RF-32: El sistema debe permitir sumar una moneda al catálogo sin modificar el código de la aplicación.
 
 ### Listado de movimientos
 
 - RF-16: El sistema debe listar los movimientos individuales (gastos e ingresos) del usuario autenticado.
 - RF-17: El sistema debe permitir filtrar el listado de movimientos por categoría, tomando "todas las categorías" como valor por defecto.
 - RF-18: El sistema debe permitir filtrar el listado de movimientos por rango de fechas, tomando el mes actual como valor por defecto.
+- RF-27: El sistema debe mostrar la moneda de cada movimiento en el listado.
+- RF-28: El sistema debe permitir filtrar el listado de movimientos por moneda, tomando "todas las monedas" como valor por defecto.
 
 ### Dashboard y resumen
 
-- RF-19: El sistema debe mostrar, en una sección de dashboard, el total de gastos agrupado por categoría, representado gráficamente (el tipo de gráfico específico queda a criterio de diseño de UI).
-- RF-20: El sistema debe mostrar en el dashboard el balance del período, calculado como total de ingresos menos total de gastos.
+- RF-19: El sistema debe mostrar, en una sección de dashboard, el total de gastos agrupado por categoría y por moneda, representado gráficamente (el tipo de gráfico específico queda a criterio de diseño de UI).
+- RF-20: El sistema debe mostrar en el dashboard un balance por cada moneda, calculado como total de ingresos menos total de gastos de esa moneda.
 - RF-21: El sistema debe permitir filtrar los datos del dashboard por rango de fechas.
-- RF-22: El sistema debe mostrar en la pantalla principal un resumen con el total ingresado y el total gastado en el mes actual.
+- RF-22: El sistema debe mostrar en la pantalla principal un resumen con el total ingresado y el total gastado en el mes actual, discriminado por moneda.
+- RF-29: El sistema debe calcular todo total, subtotal y balance sumando únicamente montos de una misma moneda.
+- RF-30: El sistema debe permitir filtrar los datos del dashboard por moneda, tomando "todas las monedas" como valor por defecto.
 
 ## Requerimientos No Funcionales
 
@@ -82,7 +95,7 @@ datos son privados y solo él los ve.
 - AC-05 (RF-03): Dado un usuario no autenticado, cuando intenta acceder a cualquier pantalla o acción de la aplicación, entonces el sistema lo redirige a login/registro sin ejecutar la acción.
 - AC-06 (RF-04): Dado dos usuarios con movimientos propios, cuando el usuario A inicia sesión, entonces el listado y el dashboard muestran únicamente movimientos de A y ninguno de B.
 - AC-07 (RF-04): Dado un movimiento perteneciente al usuario B, cuando el usuario A intenta consultarlo, modificarlo o eliminarlo indicando su identificador directamente, entonces el sistema deniega la operación y el movimiento de B queda sin cambios.
-- AC-08 (RF-04): Dado el usuario A con sesión iniciada, cuando intenta registrar un movimiento indicando al usuario B como propietario, entonces el movimiento queda asociado a A o la operación es rechazada, y el listado de B no cambia.
+- AC-08 (RF-04): Dado el usuario A con sesión iniciada, cuando intenta registrar un movimiento indicando al usuario B como propietario, entonces el movimiento queda asociado a A y el listado de B no cambia.
 - AC-09 (RF-05): Dado un usuario con sesión iniciada, cuando cierra sesión, entonces el sistema lo lleva a la pantalla de login y un nuevo intento de acceder a una pantalla de la aplicación vuelve a exigir autenticación.
 
 ### Categorías
@@ -95,10 +108,10 @@ datos son privados y solo él los ve.
 
 ### Registro de movimientos
 
-- AC-15 (RF-10): Dado que el usuario completa monto, categoría y fecha de un gasto, cuando lo guarda, entonces el gasto aparece en el listado y su monto suma al total de esa categoría en el dashboard.
-- AC-16 (RF-11): Dado que el usuario completa monto, categoría y fecha de un ingreso, cuando lo guarda, entonces el monto se refleja en el resumen del mes actual (RF-22) y en el balance del dashboard (RF-20).
+- AC-15 (RF-10): Dado que el usuario completa monto, moneda, categoría y fecha de un gasto, cuando lo guarda, entonces el gasto aparece en el listado y su monto suma al total de esa categoría en esa moneda en el dashboard.
+- AC-16 (RF-11): Dado que el usuario completa monto, moneda, categoría y fecha de un ingreso, cuando lo guarda, entonces el monto se refleja en el resumen del mes actual (RF-22) y en el balance del dashboard (RF-20), en la moneda del movimiento.
 - AC-17 (RF-12): Dado que el usuario completa monto y categoría sin tocar el campo fecha, cuando guarda, entonces el movimiento queda registrado con la fecha del día actual.
-- AC-18 (RF-13): Dado un formulario con monto vacío, monto igual o menor a cero, monto con más de dos decimales, o sin categoría seleccionada, cuando el usuario intenta guardar, entonces el sistema rechaza el guardado, muestra el motivo y no se crea ningún movimiento.
+- AC-18 (RF-13): Dado un formulario con monto vacío, monto igual o menor a cero, o monto con más de dos decimales, cuando el usuario intenta guardar, entonces el sistema rechaza el guardado, muestra el motivo y no se crea ningún movimiento.
 - AC-19 (RF-14): Dado un movimiento propio ya registrado, cuando el usuario modifica su monto y guarda, entonces el listado, el total por categoría y el balance del dashboard reflejan el monto nuevo y no el anterior.
 - AC-20 (RF-14): Dado un movimiento propio ya registrado, cuando el usuario cambia su categoría y su fecha y guarda, entonces su monto deja de sumar en el total de la categoría anterior y suma en el de la nueva, y el movimiento aparece en el listado solo si su fecha nueva cae dentro del período filtrado.
 - AC-21 (RF-15): Dado un movimiento propio ya registrado, cuando el usuario lo elimina, entonces deja de aparecer en el listado y su monto deja de sumar en el dashboard.
@@ -114,10 +127,26 @@ datos son privados y solo él los ve.
 ### Dashboard y resumen
 
 - AC-27 (RF-19): Dados gastos cargados en distintas categorías, cuando el usuario abre el dashboard, entonces para cada categoría el total mostrado es igual a la suma de los montos de los gastos de esa categoría dentro del período filtrado, y esos totales se representan gráficamente.
-- AC-28 (RF-20): Dados gastos e ingresos cargados, cuando el usuario abre el dashboard, entonces el balance mostrado es igual a la suma de los montos de los ingresos menos la suma de los montos de los gastos del período filtrado.
-- AC-29 (RF-21): Dado que el usuario selecciona un rango de fechas en el filtro del dashboard, cuando lo aplica, entonces los totales por categoría y el balance se calculan únicamente con los movimientos cuya fecha cae dentro de ese rango, incluidos sus extremos.
-- AC-30 (RF-22): Dados gastos e ingresos cargados en el mes actual, cuando el usuario entra a la pantalla principal, entonces el total ingresado y el total gastado que ve son iguales a los que muestra el dashboard filtrado por el mes actual.
-- AC-31 (RF-19, RF-20, RF-22): Dado un usuario sin ningún movimiento en el período filtrado, cuando abre la pantalla principal y el dashboard, entonces el total ingresado, el total gastado y el balance se muestran en cero, el gráfico por categoría indica que no hay datos, y no se muestra ningún mensaje de error.
+- AC-28 (RF-20): Dados gastos e ingresos cargados, cuando el usuario abre el dashboard, entonces el balance mostrado para cada moneda es igual a la suma de los montos de los ingresos de esa moneda menos la suma de los montos de los gastos de esa moneda, dentro del período filtrado.
+- AC-29 (RF-21): Dado que el usuario selecciona un rango de fechas en el filtro del dashboard, cuando lo aplica, entonces los totales por categoría y el balance de cada moneda se calculan únicamente con los movimientos cuya fecha cae dentro de ese rango, incluidos sus extremos.
+- AC-30 (RF-22): Dados gastos e ingresos cargados en el mes actual, cuando el usuario entra a la pantalla principal, entonces el total ingresado y el total gastado de cada moneda son iguales a los que muestra el dashboard de esa moneda filtrado por el mes actual.
+- AC-31 (RF-19, RF-20, RF-22): Dado un usuario sin ningún movimiento en el período filtrado, cuando abre la pantalla principal y el dashboard, entonces el total ingresado, el total gastado y el balance se muestran en cero para cada moneda, el gráfico por categoría indica que no hay datos, y no se muestra ningún mensaje de error.
+
+### Monedas
+
+- AC-37 (RF-24): Dado que el usuario completa un gasto y elige dólares como moneda, cuando lo guarda, entonces el movimiento queda registrado en dólares y el listado lo muestra en dólares.
+- AC-38 (RF-25): Dado que el usuario completa monto y categoría sin tocar el campo moneda, cuando guarda, entonces el movimiento queda registrado en la moneda predeterminada del catálogo, que inicialmente es pesos.
+- AC-39 (RF-26): Dado un formulario con una moneda que no está en el catálogo, cuando el usuario intenta guardar, entonces el sistema rechaza el guardado, muestra el motivo y no se crea ningún movimiento.
+- AC-48 (RF-31): Dado un usuario autenticado, cuando abre el formulario de registro, entonces el selector de moneda ofrece exactamente las monedas del catálogo, y exactamente una figura como predeterminada.
+- AC-49 (RF-32): Dada una moneda agregada al catálogo únicamente como dato, cuando el usuario abre el formulario de registro y el filtro de moneda, entonces esa moneda aparece en ambos y se puede registrar un movimiento con ella, sin haber modificado el código de la aplicación.
+- AC-40 (RF-23): Dado un formulario sin categoría seleccionada, cuando el usuario intenta guardar, entonces el sistema rechaza el guardado, muestra el motivo y no se crea ningún movimiento.
+- AC-41 (RF-19, RF-29): Dados gastos en pesos y en dólares cargados en una misma categoría y período, cuando el usuario abre el dashboard, entonces el total en pesos de esa categoría es igual a la suma de los gastos en pesos, el total en dólares es igual a la suma de los gastos en dólares, y ningún total incluye montos de la otra moneda.
+- AC-42 (RF-20, RF-29): Dados ingresos y gastos en las dos monedas dentro del período filtrado, cuando el usuario abre el dashboard, entonces ve un balance en pesos igual a los ingresos en pesos menos los gastos en pesos, y un balance en dólares igual a los ingresos en dólares menos los gastos en dólares.
+- AC-43 (RF-22, RF-29): Dados ingresos y gastos en las dos monedas en el mes actual, cuando el usuario entra a la pantalla principal, entonces ve el total ingresado y el total gastado de cada moneda por separado, y ningún total mezcla las dos.
+- AC-44 (RF-27): Dados dos movimientos del mismo monto, uno en pesos y otro en dólares, cuando el usuario abre el listado, entonces cada fila indica en qué moneda está su monto.
+- AC-45 (RF-28): Dado que el usuario filtra el listado por dólares, cuando aplica el filtro, entonces ve únicamente movimientos en dólares; y sin filtro de moneda ve los de las dos monedas.
+- AC-46 (RF-30): Dado que el usuario filtra el dashboard por dólares, cuando aplica el filtro, entonces los totales por categoría y el balance que ve son únicamente los de dólares; y sin filtro de moneda ve los de las dos monedas.
+- AC-47 (RF-14): Dado un movimiento propio registrado en pesos, cuando el usuario cambia su moneda a dólares y guarda, entonces su monto deja de sumar en los totales en pesos y suma en los totales en dólares.
 
 ### No funcionales
 
@@ -139,7 +168,8 @@ datos son privados y solo él los ve.
 - Recuperación de contraseña olvidada y cambio de contraseña
 - Modificación o eliminación de las categorías predefinidas del sistema
 - Movimientos recurrentes o programados
-- Múltiples monedas y conversión de divisas: todos los montos se registran en una única moneda
+- Conversión de divisas: no hay cotización, ni total consolidado, ni balance único. Los montos de cada moneda se suman por separado y se muestran por separado (RF-29). Lo que sí entra es registrar en varias monedas (RF-24)
+- Alta, edición y baja de monedas desde la interfaz: el catálogo se administra como dato (RF-32), no hay pantalla para gestionarlo
 - Adjuntar comprobantes o archivos a un movimiento
 
 ## Riesgos y Dependencias
@@ -148,6 +178,8 @@ datos son privados y solo él los ve.
 - Riesgo: permitir categorías propias (RF-07) reintroduce esa fricción si el usuario crea muchas categorías casi iguales → mitigación: las predefinidas son la opción por defecto y la creación de una categoría propia es una acción aparte, fuera del camino rápido de carga.
 - Riesgo: la baja lógica de categorías (RF-09) puede hacer reaparecer categorías eliminadas en selectores o filtros si las consultas no excluyen las dadas de baja → mitigación: AC-14 verifica explícitamente el comportamiento en formulario, listado y dashboard.
 - Riesgo: el objetivo de RNF-01 con 10000 movimientos puede no alcanzarse si los totales se calculan en el cliente → mitigación: agregar los totales en la consulta a la base de datos, no en el frontend.
+- Riesgo: con dos monedas, un total puede sumar montos de ambas por descuido y dar un número sin significado → mitigación: RF-29 lo prohíbe explícitamente y AC-41, AC-42 y AC-43 lo verifican sobre datos cargados en las dos monedas.
+- Riesgo: cargar un movimiento en la moneda equivocada por no mirar el selector → mitigación: pesos como valor por defecto (RF-25), la moneda visible en cada fila del listado (RF-27) y la posibilidad de corregirla sin borrar el movimiento (RF-14).
 - Dependencia: base de datos MySQL disponible para persistir usuarios, categorías y movimientos.
 - Dependencia: biblioteca de hashing de contraseñas (bcrypt o argon2) para cumplir RNF-03.
 
@@ -160,6 +192,10 @@ fueron pedidos explícitamente y conviene confirmarlos:
   se está cargando. Se deriva de que las listas de gastos e ingresos son distintas.
 - Catálogo predefinido propuesto — gastos: Comida, Transporte, Vivienda, Servicios, Salud,
   Ocio, Otros; ingresos: Sueldo, Ingreso extra, Otros.
-- La aplicación maneja una única moneda, sin conversión.
-- Los montos admiten hasta dos decimales (RF-13), por consistencia con el manejo habitual
-  de dinero. Si la moneda de uso no tiene centavos, corresponde bajarlo a cero decimales.
+- Las categorías son compartidas entre monedas: "Comida" es la misma categoría se gaste en
+  pesos o en dólares, y el dashboard la abre por moneda al totalizar. La alternativa
+  (una categoría por moneda) duplicaría el catálogo predefinido.
+- Los decimales admitidos son un dato de cada moneda y no una constante: pesos y dólares
+  usan dos (RF-13), pero una moneda sin centavos usaría cero.
+- Las monedas se identifican por su código ISO 4217 ("ARS", "USD"). "Pesos" sería ambiguo:
+  hay pesos argentinos, mexicanos, chilenos y colombianos.
