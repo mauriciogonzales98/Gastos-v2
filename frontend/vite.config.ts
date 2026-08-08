@@ -1,4 +1,6 @@
-import { defineConfig } from 'vite'
+// Se importa de 'vitest/config' y no de 'vite' porque este archivo tambien configura
+// los tests: el defineConfig de vite no conoce la clave `test` y tsc lo rechaza.
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/

@@ -1,184 +1,368 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
+/* Estilos de las pantallas de la feature 1. Usa las variables de color de index.css. */
 
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+.cargando {
+  padding: 2rem;
+  text-align: center;
 }
 
-.hero {
-  position: relative;
+/* --- Login / registro --- */
 
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
+.pantalla-auth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
 }
 
-#center {
+.pantalla-auth .tarjeta {
   display: flex;
   flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
-}
-
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
-}
-
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
-  position: relative;
+  gap: 0.5rem;
   width: 100%;
+  max-width: 24rem;
+  padding: 2rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  background: var(--bg);
+}
 
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
-  }
+.pantalla-auth h1 {
+  margin: 0 0 1rem;
+  font-size: 1.4rem;
+  color: var(--text-h);
+  text-align: center;
+}
 
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
-  }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
-  }
+.pantalla-auth .modos {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.pantalla-auth .modos button {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.pantalla-auth .modos button.activo {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.pantalla-auth label {
+  font-size: 0.85rem;
+  color: var(--text-h);
+}
+
+.pantalla-auth input {
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.pantalla-auth input:focus-visible {
+  outline: 2px solid var(--accent-border);
+  outline-offset: 1px;
+}
+
+.pantalla-auth .ayuda {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.pantalla-auth .error {
+  margin: 0.5rem 0 0;
+  padding: 0.6rem;
+  border-radius: 8px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  font-size: 0.85rem;
+}
+
+.pantalla-auth .principal {
+  margin-top: 1rem;
+  padding: 0.7rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.pantalla-auth .principal:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* --- Interior de la aplicacion --- */
+
+.pantalla-principal > header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.pantalla-principal h1 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--text-h);
+}
+
+.pantalla-principal .sesion {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.pantalla-principal .sesion button {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.pantalla-principal > main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.pantalla-principal h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: var(--text-h);
+}
+
+/* Campos compartidos por el formulario, los filtros y el ABM de categorias. */
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 8rem;
+}
+
+.campo label {
+  font-size: 0.8rem;
+  color: var(--text-h);
+}
+
+.campo input,
+.campo select {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.pantalla-principal button {
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.pantalla-principal button.principal {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+.pantalla-principal button.activo {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.pantalla-principal .error {
+  margin: 0;
+  padding: 0.6rem;
+  border-radius: 8px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  font-size: 0.85rem;
+}
+
+.pantalla-principal .vacio {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.etiqueta {
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: var(--code-bg);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.oculto-visualmente {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- Formulario de carga --- */
+
+.formulario-movimiento,
+.listado,
+.panel-categorias {
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.formulario-movimiento .tipos {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.formulario-movimiento .campos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.formulario-movimiento .acciones {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.formulario-movimiento .error {
+  margin-top: 1rem;
+}
+
+/* --- Listado --- */
+
+.listado .filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.listado table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.listado th,
+.listado td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.listado th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.listado .numero {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.listado td.numero.gasto {
+  color: #dc2626;
+}
+
+.listado td.numero.ingreso {
+  color: #16a34a;
+}
+
+.listado td.acciones {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+
+/* --- ABM de categorias --- */
+
+.panel-categorias .desplegar {
+  width: 100%;
+  text-align: left;
+}
+
+.panel-categorias .contenido {
+  margin-top: 1rem;
+}
+
+.panel-categorias form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.panel-categorias ul {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel-categorias li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.panel-categorias li input {
+  flex: 1;
+  padding: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.9rem;
 }
