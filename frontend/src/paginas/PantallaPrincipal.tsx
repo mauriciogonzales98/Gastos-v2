@@ -4,6 +4,7 @@ import {
   ErrorApi,
   type Categoria,
   type FiltrosMovimientos,
+  type Moneda,
   type Movimiento,
 } from '../api/cliente'
 import { useAutenticacion } from '../auth/contexto'
@@ -17,17 +18,25 @@ export function PantallaPrincipal() {
   const { usuario, cerrarSesion } = useAutenticacion()
 
   const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [monedas, setMonedas] = useState<Moneda[]>([])
   const [movimientos, setMovimientos] = useState<Movimiento[]>([])
-  // RF-18: el periodo por defecto es el mes actual.
+  // RF-18: el periodo por defecto es el mes actual. RF-17 y RF-28: sin filtrar por
+  // categoria ni por moneda.
   const [filtros, setFiltros] = useState<FiltrosMovimientos>(() => ({
     ...mesActual(),
     categoriaId: '',
+    moneda: '',
   }))
   const [enEdicion, setEnEdicion] = useState<Movimiento | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const cargarCategorias = useCallback(async () => {
     setCategorias(await api.categorias.listar())
+  }, [])
+
+  // El catálogo de monedas se pide una vez: no cambia mientras dura la sesión.
+  const cargarMonedas = useCallback(async () => {
+    setMonedas(await api.monedas.listar())
   }, [])
 
   const cargarMovimientos = useCallback(async () => {
@@ -37,6 +46,10 @@ export function PantallaPrincipal() {
   useEffect(() => {
     cargarCategorias().catch(() => setError('No se pudieron cargar las categorías.'))
   }, [cargarCategorias])
+
+  useEffect(() => {
+    cargarMonedas().catch(() => setError('No se pudieron cargar las monedas.'))
+  }, [cargarMonedas])
 
   useEffect(() => {
     cargarMovimientos().catch(() => setError('No se pudieron cargar los movimientos.'))
@@ -90,6 +103,7 @@ export function PantallaPrincipal() {
 
         <FormularioMovimiento
           categorias={categorias}
+          monedas={monedas}
           enEdicion={enEdicion}
           onGuardado={() => void despuesDeGuardar()}
           onCancelar={() => setEnEdicion(null)}
@@ -100,6 +114,7 @@ export function PantallaPrincipal() {
         <ListadoMovimientos
           movimientos={movimientos}
           categorias={categorias}
+          monedas={monedas}
           filtros={filtros}
           onCambiarFiltros={setFiltros}
           onEditar={setEnEdicion}

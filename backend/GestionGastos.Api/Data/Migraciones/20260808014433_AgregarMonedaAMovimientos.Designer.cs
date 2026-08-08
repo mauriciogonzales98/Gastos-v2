@@ -4,6 +4,7 @@ using GestionGastos.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GestionGastos.Api.Data.Migraciones
 {
     [DbContext(typeof(GestionGastosDbContext))]
-    partial class GestionGastosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260808014433_AgregarMonedaAMovimientos")]
+    partial class AgregarMonedaAMovimientos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -126,57 +129,6 @@ namespace GestionGastos.Api.Data.Migraciones
                         });
                 });
 
-            modelBuilder.Entity("GestionGastos.Api.Entidades.Moneda", b =>
-                {
-                    b.Property<string>("Codigo")
-                        .HasMaxLength(3)
-                        .HasColumnType("char(3)")
-                        .IsFixedLength();
-
-                    b.Property<int>("Decimales")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("EsPredeterminada")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("varchar(40)");
-
-                    b.Property<int>("Orden")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Simbolo")
-                        .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("varchar(8)");
-
-                    b.HasKey("Codigo");
-
-                    b.ToTable("Monedas", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Codigo = "ARS",
-                            Decimales = 2,
-                            EsPredeterminada = true,
-                            Nombre = "Pesos",
-                            Orden = 1,
-                            Simbolo = "$"
-                        },
-                        new
-                        {
-                            Codigo = "USD",
-                            Decimales = 2,
-                            EsPredeterminada = false,
-                            Nombre = "Dolares",
-                            Orden = 2,
-                            Simbolo = "US$"
-                        });
-                });
-
             modelBuilder.Entity("GestionGastos.Api.Entidades.Movimiento", b =>
                 {
                     b.Property<Guid>("Id")
@@ -192,11 +144,10 @@ namespace GestionGastos.Api.Data.Migraciones
                     b.Property<DateTime>("FechaCreacionUtc")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("MonedaCodigo")
+                    b.Property<string>("Moneda")
                         .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("char(3)")
-                        .IsFixedLength();
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
 
                     b.Property<decimal>("Monto")
                         .HasPrecision(18, 2)
@@ -209,9 +160,7 @@ namespace GestionGastos.Api.Data.Migraciones
 
                     b.HasIndex("CategoriaId");
 
-                    b.HasIndex("MonedaCodigo");
-
-                    b.HasIndex("UsuarioId", "Fecha", "MonedaCodigo");
+                    b.HasIndex("UsuarioId", "Fecha", "Moneda");
 
                     b.ToTable("Movimientos", (string)null);
                 });
@@ -261,12 +210,6 @@ namespace GestionGastos.Api.Data.Migraciones
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("GestionGastos.Api.Entidades.Moneda", "Moneda")
-                        .WithMany()
-                        .HasForeignKey("MonedaCodigo")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("GestionGastos.Api.Entidades.Usuario", "Usuario")
                         .WithMany()
                         .HasForeignKey("UsuarioId")
@@ -274,8 +217,6 @@ namespace GestionGastos.Api.Data.Migraciones
                         .IsRequired();
 
                     b.Navigation("Categoria");
-
-                    b.Navigation("Moneda");
 
                     b.Navigation("Usuario");
                 });

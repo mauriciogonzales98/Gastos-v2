@@ -1,9 +1,10 @@
-import type { Categoria, FiltrosMovimientos, Movimiento } from '../api/cliente'
+import type { Categoria, FiltrosMovimientos, Moneda, Movimiento } from '../api/cliente'
 import { comoMonto, comoTexto } from '../utiles/fechas'
 
 type Props = {
   movimientos: Movimiento[]
   categorias: Categoria[]
+  monedas: Moneda[]
   filtros: FiltrosMovimientos
   onCambiarFiltros: (filtros: FiltrosMovimientos) => void
   onEditar: (movimiento: Movimiento) => void
@@ -14,6 +15,7 @@ type Props = {
 export function ListadoMovimientos({
   movimientos,
   categorias,
+  monedas,
   filtros,
   onCambiarFiltros,
   onEditar,
@@ -46,6 +48,23 @@ export function ListadoMovimientos({
             onChange={(evento) => cambiar('hasta', evento.target.value)}
           />
         </div>
+        <div className="campo">
+          <label htmlFor="filtro-moneda">Filtrar por moneda</label>
+          <select
+            id="filtro-moneda"
+            value={filtros.moneda}
+            onChange={(evento) => cambiar('moneda', evento.target.value)}
+          >
+            {/* RF-28: el default es "todas". */}
+            <option value="">Todas</option>
+            {monedas.map((moneda) => (
+              <option key={moneda.codigo} value={moneda.codigo}>
+                {moneda.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="campo">
           <label htmlFor="filtro-categoria">Filtrar por categor&iacute;a</label>
           <select
@@ -89,7 +108,8 @@ export function ListadoMovimientos({
                   </span>
                 </td>
                 <td className={`numero ${movimiento.tipo.toLowerCase()}`}>
-                  {movimiento.tipo === 'Gasto' ? '-' : '+'} {comoMonto(movimiento.monto)}
+                  {movimiento.tipo === 'Gasto' ? '-' : '+'}{' '}
+                  {comoMonto(movimiento.monto, movimiento.moneda, monedas)}
                 </td>
                 <td className="acciones">
                   <button type="button" onClick={() => onEditar(movimiento)}>

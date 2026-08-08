@@ -19,6 +19,14 @@ public class Movimiento
     /// <summary>Siempre mayor a cero y con hasta dos decimales (RF-13).</summary>
     public decimal Monto { get; set; }
 
+    /// <summary>
+    /// Codigo de la moneda del <see cref="Monto"/> (RF-24). Nunca se convierte: un monto
+    /// solo se suma con otros de la misma moneda.
+    /// </summary>
+    public required string MonedaCodigo { get; set; }
+
+    public Moneda? Moneda { get; set; }
+
     /// <summary>Fecha del movimiento, sin hora: es un dato del usuario, no del sistema.</summary>
     public DateOnly Fecha { get; set; }
 

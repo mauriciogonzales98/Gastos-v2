@@ -12,6 +12,8 @@ public class GestionGastosDbContext(DbContextOptions<GestionGastosDbContext> opt
 
     public DbSet<Movimiento> Movimientos => Set<Movimiento>();
 
+    public DbSet<Moneda> Monedas => Set<Moneda>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -53,12 +55,29 @@ public class GestionGastosDbContext(DbContextOptions<GestionGastosDbContext> opt
             categoria.HasData(CatalogoDeCategorias.Predefinidas);
         });
 
+        modelBuilder.Entity<Moneda>(moneda =>
+        {
+            moneda.ToTable("Monedas");
+            // El codigo ISO es la clave: es estable, corto y unico por definicion.
+            moneda.HasKey(m => m.Codigo);
+
+            moneda.Property(m => m.Codigo).HasMaxLength(3).IsFixedLength();
+            moneda.Property(m => m.Nombre).HasMaxLength(40).IsRequired();
+            moneda.Property(m => m.Simbolo).HasMaxLength(8).IsRequired();
+            moneda.Property(m => m.Decimales).IsRequired();
+            moneda.Property(m => m.EsPredeterminada).IsRequired();
+            moneda.Property(m => m.Orden).IsRequired();
+
+            moneda.HasData(CatalogoDeMonedas.Iniciales);
+        });
+
         modelBuilder.Entity<Movimiento>(movimiento =>
         {
             movimiento.ToTable("Movimientos");
             movimiento.HasKey(m => m.Id);
 
             movimiento.Property(m => m.Monto).HasPrecision(18, 2).IsRequired();
+            movimiento.Property(m => m.MonedaCodigo).HasMaxLength(3).IsFixedLength().IsRequired();
             movimiento.Property(m => m.Fecha).IsRequired();
             movimiento.Property(m => m.FechaCreacionUtc).IsRequired();
 
@@ -74,9 +93,17 @@ public class GestionGastosDbContext(DbContextOptions<GestionGastosDbContext> opt
                 .HasForeignKey(m => m.CategoriaId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // La foreign key es lo que impide que un UPDATE a mano meta una moneda que no
+            // existe: la validacion de la API deja de ser la unica defensa.
+            movimiento.HasOne(m => m.Moneda)
+                .WithMany()
+                .HasForeignKey(m => m.MonedaCodigo)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // Todas las consultas de listado y dashboard filtran por usuario y rango de
             // fechas; este indice es el que sostiene el RNF-01 con 10000 movimientos.
-            movimiento.HasIndex(m => new { m.UsuarioId, m.Fecha });
+            // La moneda va al final porque el dashboard agrupa por ella dentro del rango.
+            movimiento.HasIndex(m => new { m.UsuarioId, m.Fecha, m.MonedaCodigo });
         });
     }
 }

@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using GestionGastos.Api.Autenticacion;
 using GestionGastos.Api.Categorias;
 using GestionGastos.Api.Data;
+using GestionGastos.Api.Monedas;
 using GestionGastos.Api.Movimientos;
 using Microsoft.EntityFrameworkCore;
 
@@ -53,6 +54,7 @@ app.MapGet("/health/db", async (GestionGastosDbContext db, CancellationToken ct)
 
 app.MapearEndpointsDeAutenticacion();
 app.MapearEndpointsDeCategorias();
+app.MapearEndpointsDeMonedas();
 app.MapearEndpointsDeMovimientos();
 
 app.Run();

@@ -4,6 +4,7 @@ using GestionGastos.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GestionGastos.Api.Data.Migraciones
 {
     [DbContext(typeof(GestionGastosDbContext))]
-    partial class GestionGastosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260808015945_ConvertirMonedaEnCatalogo")]
+    partial class ConvertirMonedaEnCatalogo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

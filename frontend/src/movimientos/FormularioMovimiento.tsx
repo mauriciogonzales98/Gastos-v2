@@ -3,6 +3,8 @@ import {
   api,
   ErrorApi,
   type Categoria,
+  type CodigoMoneda,
+  type Moneda,
   type Movimiento,
   type TipoCategoria,
 } from '../api/cliente'
@@ -10,6 +12,7 @@ import { hoy } from '../utiles/fechas'
 
 type Props = {
   categorias: Categoria[]
+  monedas: Moneda[]
   /** Cuando no es null, el formulario edita ese movimiento en vez de crear uno (RF-14). */
   enEdicion: Movimiento | null
   onGuardado: () => void
@@ -17,9 +20,18 @@ type Props = {
 }
 
 /** RF-10 a RF-14: carga y edicion de un gasto o un ingreso. */
-export function FormularioMovimiento({ categorias, enEdicion, onGuardado, onCancelar }: Props) {
+export function FormularioMovimiento({
+  categorias,
+  monedas,
+  enEdicion,
+  onGuardado,
+  onCancelar,
+}: Props) {
+  // RF-25 / AC-38: la predeterminada la decide el catálogo, no el frontend.
+  const codigoPorDefecto = monedas.find((m) => m.esPredeterminada)?.codigo ?? ''
   const [tipo, setTipo] = useState<TipoCategoria>('Gasto')
   const [monto, setMonto] = useState('')
+  const [moneda, setMoneda] = useState<CodigoMoneda>('')
   const [categoriaId, setCategoriaId] = useState('')
   const [fecha, setFecha] = useState(hoy)
   const [error, setError] = useState<string | null>(null)
@@ -32,6 +44,7 @@ export function FormularioMovimiento({ categorias, enEdicion, onGuardado, onCanc
     if (enEdicion) {
       setTipo(enEdicion.tipo)
       setMonto(String(enEdicion.monto))
+      setMoneda(enEdicion.moneda)
       setCategoriaId(enEdicion.categoriaId)
       setFecha(enEdicion.fecha)
     } else {
@@ -41,6 +54,12 @@ export function FormularioMovimiento({ categorias, enEdicion, onGuardado, onCanc
     }
     setError(null)
   }, [enEdicion])
+
+  // El catálogo llega después del primer render, así que la moneda por defecto se
+  // aplica cuando está disponible y sólo mientras no haya una elegida.
+  useEffect(() => {
+    setMoneda((actual) => actual || codigoPorDefecto)
+  }, [codigoPorDefecto])
 
   function cambiarTipo(nuevo: TipoCategoria) {
     setTipo(nuevo)
@@ -65,7 +84,7 @@ export function FormularioMovimiento({ categorias, enEdicion, onGuardado, onCanc
 
     setEnviando(true)
     try {
-      const datos = { monto: montoNumerico, fecha, categoriaId }
+      const datos = { monto: montoNumerico, moneda, fecha, categoriaId }
       await (enEdicion
         ? api.movimientos.modificar(enEdicion.id, datos)
         : api.movimientos.crear(datos))
@@ -116,6 +135,17 @@ export function FormularioMovimiento({ categorias, enEdicion, onGuardado, onCanc
             value={monto}
             onChange={(evento) => setMonto(evento.target.value)}
           />
+        </div>
+
+        <div className="campo">
+          <label htmlFor="moneda">Moneda</label>
+          <select id="moneda" value={moneda} onChange={(evento) => setMoneda(evento.target.value)}>
+            {monedas.map((opcion) => (
+              <option key={opcion.codigo} value={opcion.codigo}>
+                {opcion.nombre}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="campo">

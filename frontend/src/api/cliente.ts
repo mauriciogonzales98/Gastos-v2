@@ -61,6 +61,21 @@ export type Credenciales = {
 
 export type TipoCategoria = 'Gasto' | 'Ingreso'
 
+/**
+ * RF-24. La moneda viaja como codigo ISO ("ARS", "USD") y el resto (nombre, simbolo,
+ * decimales) sale del catalogo: sumar una moneda no requiere tocar el frontend.
+ * No hay conversion entre ellas: los totales se calculan por separado (RF-29).
+ */
+export type CodigoMoneda = string
+
+export type Moneda = {
+  codigo: CodigoMoneda
+  nombre: string
+  simbolo: string
+  decimales: number
+  esPredeterminada: boolean
+}
+
 export type Categoria = {
   id: string
   nombre: string
@@ -71,6 +86,7 @@ export type Categoria = {
 export type Movimiento = {
   id: string
   monto: number
+  moneda: CodigoMoneda
   /** ISO corto, "2026-08-08": es una fecha del usuario, sin hora ni zona. */
   fecha: string
   categoriaId: string
@@ -80,6 +96,7 @@ export type Movimiento = {
 
 export type DatosMovimiento = {
   monto: number
+  moneda: CodigoMoneda
   fecha: string
   categoriaId: string
 }
@@ -89,11 +106,14 @@ export type FiltrosMovimientos = {
   hasta: string
   /** Vacio = todas las categorias (RF-17). */
   categoriaId: string
+  /** Vacio = todas las monedas (RF-28). */
+  moneda: CodigoMoneda | ''
 }
 
-function consultaDeFiltros({ desde, hasta, categoriaId }: FiltrosMovimientos): string {
+function consultaDeFiltros({ desde, hasta, categoriaId, moneda }: FiltrosMovimientos): string {
   const parametros = new URLSearchParams({ desde, hasta })
   if (categoriaId) parametros.set('categoriaId', categoriaId)
+  if (moneda) parametros.set('moneda', moneda)
   return `?${parametros.toString()}`
 }
 
@@ -107,6 +127,10 @@ export const api = {
   cerrarSesion: () => pedir<void>('/auth/logout', { method: 'POST' }),
 
   sesionActual: () => pedir<Usuario>('/auth/me'),
+
+  monedas: {
+    listar: () => pedir<Moneda[]>('/monedas'),
+  },
 
   categorias: {
     listar: () => pedir<Categoria[]>('/categorias'),

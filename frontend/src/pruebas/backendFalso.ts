@@ -1,5 +1,5 @@
 import { vi } from 'vitest'
-import type { Categoria, Movimiento, Usuario } from '../api/cliente'
+import type { Categoria, Moneda, Movimiento, Usuario } from '../api/cliente'
 
 export type Pedido = {
   metodo: string
@@ -93,10 +93,16 @@ export const CATEGORIAS: Categoria[] = [
   { id: 'cat-mascotas', nombre: 'Mascotas', tipo: 'Gasto', esDelSistema: false },
 ]
 
+export const MONEDAS: Moneda[] = [
+  { codigo: 'ARS', nombre: 'Pesos', simbolo: '$', decimales: 2, esPredeterminada: true },
+  { codigo: 'USD', nombre: 'Dolares', simbolo: 'US$', decimales: 2, esPredeterminada: false },
+]
+
 export function movimiento(parcial: Partial<Movimiento> = {}): Movimiento {
   return {
     id: 'mov-1',
     monto: 1500,
+    moneda: 'ARS',
     fecha: '2026-08-05',
     categoriaId: 'cat-comida',
     categoriaNombre: 'Comida',
@@ -110,5 +116,6 @@ export function backendConSesion(movimientos: Movimiento[] = []): BackendFalso {
   return new BackendFalso()
     .responder('GET /auth/me', { estado: 200, cuerpo: USUARIO })
     .responder('GET /categorias', { estado: 200, cuerpo: CATEGORIAS })
+    .responder('GET /monedas', { estado: 200, cuerpo: MONEDAS })
     .responder('GET /movimientos', { estado: 200, cuerpo: movimientos })
 }

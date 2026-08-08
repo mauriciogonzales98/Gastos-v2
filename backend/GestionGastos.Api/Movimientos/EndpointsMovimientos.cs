@@ -9,8 +9,6 @@ namespace GestionGastos.Api.Movimientos;
 
 public static class EndpointsMovimientos
 {
-    private const int DecimalesDelMonto = 2;
-
     public static IEndpointRouteBuilder MapearEndpointsDeMovimientos(this IEndpointRouteBuilder rutas)
     {
         var grupo = rutas.MapGroup("/movimientos").WithTags("Movimientos");
@@ -24,8 +22,9 @@ public static class EndpointsMovimientos
     }
 
     /// <summary>
-    /// RF-16 a RF-18. Sin filtros de fecha devuelve el mes actual (AC-25) y sin filtro de
-    /// categoria, todas (AC-24). El rango incluye ambos extremos (AC-26).
+    /// RF-16 a RF-18 y RF-28. Sin filtros de fecha devuelve el mes actual (AC-25); sin
+    /// filtro de categoria, todas (AC-24); sin filtro de moneda, las dos (AC-45). El rango
+    /// incluye ambos extremos (AC-26).
     /// </summary>
     private static async Task<IResult> Listar(
         ClaimsPrincipal principal,
@@ -33,7 +32,8 @@ public static class EndpointsMovimientos
         CancellationToken ct,
         DateOnly? desde = null,
         DateOnly? hasta = null,
-        Guid? categoriaId = null)
+        Guid? categoriaId = null,
+        string? moneda = null)
     {
         var (inicio, fin) = RangoPedidoOMesActual(desde, hasta);
 
@@ -43,6 +43,21 @@ public static class EndpointsMovimientos
             {
                 ["desde"] = ["La fecha de inicio no puede ser posterior a la de fin."],
             });
+        }
+
+        string? monedaPedida = null;
+
+        if (!string.IsNullOrWhiteSpace(moneda))
+        {
+            monedaPedida = await NormalizarMoneda(moneda, db, ct);
+
+            if (monedaPedida is null)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["moneda"] = [await MensajeDeMonedaInvalida(db, ct)],
+                });
+            }
         }
 
         var usuarioId = principal.ObtenerIdRequerido();
@@ -56,11 +71,17 @@ public static class EndpointsMovimientos
             consulta = consulta.Where(m => m.CategoriaId == categoriaPedida);
         }
 
+        if (monedaPedida is { } monedaFiltrada)
+        {
+            consulta = consulta.Where(m => m.MonedaCodigo == monedaFiltrada);
+        }
+
         var movimientos = await consulta
             .OrderByDescending(m => m.Fecha)
             .ThenByDescending(m => m.FechaCreacionUtc)
             .Select(m => new MovimientoResponse(
-                m.Id, m.Monto, m.Fecha, m.CategoriaId, m.Categoria!.Nombre, m.Categoria.Tipo))
+                m.Id, m.Monto, m.MonedaCodigo, m.Fecha,
+                m.CategoriaId, m.Categoria!.Nombre, m.Categoria.Tipo))
             .ToListAsync(ct);
 
         return Results.Ok(movimientos);
@@ -102,6 +123,7 @@ public static class EndpointsMovimientos
             UsuarioId = usuarioId,
             CategoriaId = datos.Categoria.Id,
             Monto = datos.Monto,
+            MonedaCodigo = datos.Moneda.Codigo,
             Fecha = datos.Fecha,
             FechaCreacionUtc = DateTime.UtcNow,
         };
@@ -112,7 +134,7 @@ public static class EndpointsMovimientos
         return Results.Created($"/movimientos/{movimiento.Id}", Responder(movimiento, datos.Categoria));
     }
 
-    /// <summary>RF-14: modificar monto, categoria y fecha de un movimiento propio.</summary>
+    /// <summary>RF-14: modificar monto, moneda, categoria y fecha de un movimiento propio.</summary>
     private static async Task<IResult> Modificar(
         Guid id,
         GuardarMovimientoRequest pedido,
@@ -135,6 +157,8 @@ public static class EndpointsMovimientos
         }
 
         movimiento.Monto = datos.Monto;
+        // AC-47: cambiar la moneda saca el monto de los totales de la anterior.
+        movimiento.MonedaCodigo = datos.Moneda.Codigo;
         movimiento.Fecha = datos.Fecha;
         movimiento.CategoriaId = datos.Categoria.Id;
         await db.SaveChangesAsync(ct);
@@ -169,8 +193,11 @@ public static class EndpointsMovimientos
         Guid id, Guid usuarioId, GestionGastosDbContext db, CancellationToken ct) =>
         db.Movimientos.SingleOrDefaultAsync(m => m.Id == id && m.UsuarioId == usuarioId, ct);
 
-    /// <summary>RF-13: monto mayor a cero con hasta dos decimales y categoria valida.</summary>
-    private static async Task<((decimal Monto, DateOnly Fecha, Categoria Categoria) Datos, IResult? Rechazo)>
+    /// <summary>
+    /// RF-13, RF-23 y RF-26: monto mayor a cero con hasta dos decimales, categoria valida
+    /// y moneda valida.
+    /// </summary>
+    private static async Task<((decimal Monto, Moneda Moneda, DateOnly Fecha, Categoria Categoria) Datos, IResult? Rechazo)>
         ValidarPedido(
             GuardarMovimientoRequest pedido,
             Guid usuarioId,
@@ -178,6 +205,18 @@ public static class EndpointsMovimientos
             CancellationToken ct)
     {
         var errores = new Dictionary<string, string[]>();
+
+        // La moneda se resuelve primero porque de ella dependen los decimales admitidos.
+        // RF-25 / AC-38: omitir la moneda vale y significa la predeterminada del catalogo.
+        // Un codigo que no este en el catalogo, no (RF-26 / AC-39).
+        var moneda = string.IsNullOrWhiteSpace(pedido.Moneda)
+            ? await db.Monedas.SingleAsync(m => m.EsPredeterminada, ct)
+            : await BuscarMoneda(pedido.Moneda, db, ct);
+
+        if (moneda is null)
+        {
+            errores["moneda"] = [await MensajeDeMonedaInvalida(db, ct)];
+        }
 
         if (pedido.Monto is not { } monto)
         {
@@ -187,9 +226,13 @@ public static class EndpointsMovimientos
         {
             errores["monto"] = ["El monto tiene que ser mayor a cero."];
         }
-        else if (decimal.Round(monto, DecimalesDelMonto) != monto)
+        else if (moneda is not null && decimal.Round(monto, moneda.Decimales) != monto)
         {
-            errores["monto"] = [$"El monto admite hasta {DecimalesDelMonto} decimales."];
+            // RF-13: los decimales salen de la moneda, no de una constante. Hoy las dos
+            // usan 2, pero una moneda sin centavos (yen, peso chileno) usaria 0.
+            errores["monto"] = [moneda.Decimales == 0
+                ? $"El monto en {moneda.Nombre} no admite decimales."
+                : $"El monto en {moneda.Nombre} admite hasta {moneda.Decimales} decimales."];
         }
 
         Categoria? categoria = null;
@@ -220,10 +263,33 @@ public static class EndpointsMovimientos
         // tambien vive aca para que valga sea cual sea el cliente.
         var fecha = pedido.Fecha ?? DateOnly.FromDateTime(DateTime.Now);
 
-        return ((pedido.Monto!.Value, fecha, categoria!), null);
+        return ((pedido.Monto!.Value, moneda, fecha, categoria!), null);
+    }
+
+    /// <summary>Busca una moneda del catalogo por codigo, sin distinguir mayusculas.</summary>
+    private static Task<Moneda?> BuscarMoneda(string codigo, GestionGastosDbContext db, CancellationToken ct)
+    {
+        var normalizado = codigo.Trim().ToUpperInvariant();
+        return db.Monedas.SingleOrDefaultAsync(m => m.Codigo == normalizado, ct);
+    }
+
+    /// <summary>Igual que <see cref="BuscarMoneda"/> pero devuelve solo el codigo canonico.</summary>
+    private static async Task<string?> NormalizarMoneda(
+        string codigo, GestionGastosDbContext db, CancellationToken ct) =>
+        (await BuscarMoneda(codigo, db, ct))?.Codigo;
+
+    /// <summary>
+    /// El mensaje enumera el catalogo en vez de nombrar dos monedas fijas: cuando se
+    /// sume una, el error se actualiza solo.
+    /// </summary>
+    private static async Task<string> MensajeDeMonedaInvalida(
+        GestionGastosDbContext db, CancellationToken ct)
+    {
+        var codigos = await db.Monedas.OrderBy(m => m.Orden).Select(m => m.Codigo).ToListAsync(ct);
+        return $"La moneda tiene que ser una de: {string.Join(", ", codigos)}.";
     }
 
     private static MovimientoResponse Responder(Movimiento movimiento, Categoria categoria) =>
-        new(movimiento.Id, movimiento.Monto, movimiento.Fecha,
+        new(movimiento.Id, movimiento.Monto, movimiento.MonedaCodigo, movimiento.Fecha,
             categoria.Id, categoria.Nombre, categoria.Tipo);
 }

@@ -4,6 +4,8 @@
  * pasa por UTC y, segun la zona horaria, devuelve el dia anterior.
  */
 
+import type { CodigoMoneda, Moneda } from '../api/cliente'
+
 export function comoIso(fecha: Date): string {
   const mes = `${fecha.getMonth() + 1}`.padStart(2, '0')
   const dia = `${fecha.getDate()}`.padStart(2, '0')
@@ -30,12 +32,22 @@ export function comoTexto(fechaIso: string): string {
   return `${dia}/${mes}/${anio}`
 }
 
-const formatoMoneda = new Intl.NumberFormat('es-AR', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
+/**
+ * RF-27: el símbolo va siempre, porque dos montos iguales en monedas distintas serían
+ * indistinguibles. No hay conversión: cada monto se muestra en la suya (RF-29).
+ *
+ * El símbolo y la cantidad de decimales salen del catálogo (`GET /monedas`), no de una
+ * tabla hardcodeada: por eso sumar una moneda no toca este archivo. Si el código no está
+ * en el catálogo se muestra el código tal cual, que es más honesto que inventar un símbolo.
+ */
+export function comoMonto(monto: number, codigo: CodigoMoneda, catalogo: Moneda[]): string {
+  const moneda = catalogo.find((m) => m.codigo === codigo)
+  const decimales = moneda?.decimales ?? 2
 
-/** Moneda unica, dos decimales: el PRD deja fuera de alcance la conversion de divisas. */
-export function comoMonto(monto: number): string {
-  return `$ ${formatoMoneda.format(monto)}`
+  const formato = new Intl.NumberFormat('es-AR', {
+    minimumFractionDigits: decimales,
+    maximumFractionDigits: decimales,
+  })
+
+  return `${moneda?.simbolo ?? codigo} ${formato.format(monto)}`
 }

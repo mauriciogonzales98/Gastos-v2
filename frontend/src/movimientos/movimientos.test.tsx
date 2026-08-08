@@ -59,6 +59,7 @@ describe('formulario de carga (RF-10 a RF-13)', () => {
     await waitFor(() => expect(backend.pedidosA('POST /movimientos')).toHaveLength(1))
     expect(backend.pedidosA('POST /movimientos')[0].cuerpo).toEqual({
       monto: 1500,
+      moneda: 'ARS',
       fecha: hoy(),
       categoriaId: 'cat-comida',
     })

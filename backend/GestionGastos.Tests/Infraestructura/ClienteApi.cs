@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using GestionGastos.Api.Categorias;
 using GestionGastos.Api.Entidades;
+using GestionGastos.Api.Monedas;
 using GestionGastos.Api.Movimientos;
 
 namespace GestionGastos.Tests.Infraestructura;
@@ -33,6 +34,14 @@ public static class ClienteApi
 
     // --- Categorias ---
 
+    // --- Monedas ---
+
+    public static Task<HttpResponseMessage> ListarMonedas(this HttpClient cliente) =>
+        cliente.GetAsync("/monedas");
+
+    public static async Task<List<MonedaResponse>> Monedas(this HttpClient cliente) =>
+        await (await cliente.ListarMonedas()).LeerComo<List<MonedaResponse>>();
+
     public static Task<HttpResponseMessage> ListarCategorias(this HttpClient cliente, string? tipo = null) =>
         cliente.GetAsync(tipo is null ? "/categorias" : $"/categorias?tipo={tipo}");
 
@@ -57,22 +66,34 @@ public static class ClienteApi
 
     // --- Movimientos ---
 
+    /// <summary>Sin moneda explicita queda en la predeterminada del catalogo (AC-38).</summary>
     public static Task<HttpResponseMessage> CrearMovimiento(
-        this HttpClient cliente, decimal monto, Guid categoriaId, DateOnly? fecha = null) =>
+        this HttpClient cliente,
+        decimal monto,
+        Guid categoriaId,
+        DateOnly? fecha = null,
+        string? moneda = null) =>
         cliente.PostAsJsonAsync("/movimientos", new
         {
             monto,
             categoriaId,
             fecha = fecha?.ToString("yyyy-MM-dd"),
+            moneda,
         });
 
     public static Task<HttpResponseMessage> ModificarMovimiento(
-        this HttpClient cliente, Guid id, decimal monto, Guid categoriaId, DateOnly fecha) =>
+        this HttpClient cliente,
+        Guid id,
+        decimal monto,
+        Guid categoriaId,
+        DateOnly fecha,
+        string? moneda = null) =>
         cliente.PutAsJsonAsync($"/movimientos/{id}", new
         {
             monto,
             categoriaId,
             fecha = fecha.ToString("yyyy-MM-dd"),
+            moneda,
         });
 
     public static Task<HttpResponseMessage> EliminarMovimiento(this HttpClient cliente, Guid id) =>
@@ -87,9 +108,13 @@ public static class ClienteApi
 
     /// <summary>Crea un movimiento y devuelve el que quedo guardado.</summary>
     public static async Task<MovimientoResponse> MovimientoNuevo(
-        this HttpClient cliente, decimal monto, Guid categoriaId, DateOnly? fecha = null)
+        this HttpClient cliente,
+        decimal monto,
+        Guid categoriaId,
+        DateOnly? fecha = null,
+        string? moneda = null)
     {
-        var respuesta = await cliente.CrearMovimiento(monto, categoriaId, fecha);
+        var respuesta = await cliente.CrearMovimiento(monto, categoriaId, fecha, moneda);
         respuesta.EnsureSuccessStatusCode();
         return await respuesta.LeerComo<MovimientoResponse>();
     }
