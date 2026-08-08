@@ -10,12 +10,14 @@ ya en `origin/main`.
 
 **Features 1 y 2 terminadas, commiteadas y pusheadas** (`7a837c1`, `483429a`).
 
-**Soporte de varias monedas implementado, sin commitear.** El PRD se actualizó a la
-versión 3 antes de tocar código. La moneda es una **tabla catálogo** (`Monedas`), no un
-enum: sumar una es insertar una fila. 70 tests de xUnit y 32 de Vitest en verde.
+**Soporte de varias monedas terminado, commiteado y pusheado** (`377c3db`, `328c0c5`).
+La moneda es una **tabla catálogo** (`Monedas`), no un enum: sumar una es insertar una fila.
 
-Lo próximo es commitear y arrancar la **feature 3 (dashboard y resumen)**, que ya nace
-con los totales abiertos por moneda.
+**Feature 3 (dashboard y resumen) implementada, sin commitear.** 81 tests de xUnit y 40
+de Vitest en verde.
+
+Con esto quedan cubiertas las 32 RF del PRD. Lo que falta es el **paso final**: medir los
+no funcionales (AC-32 a AC-34).
 
 ## Plan general
 
@@ -107,21 +109,32 @@ categorías son compartidas entre monedas.
 AC-41, AC-42, AC-43 y AC-46 (que los totales del dashboard no se mezclen) quedan para la
 feature 3, que es donde existe el dashboard.
 
-### Feature 3 — Dashboard y resumen (RF-19 a RF-22, RF-29, RF-30, RNF-01) ⬅️ SIGUIENTE
+### Feature 3 — Dashboard y resumen (RF-19 a RF-22, RF-29, RF-30, RNF-01) ✅ COMPLETADA
 
-- [ ] 3.1 `GET /dashboard?desde&hasta`: totales por categoría, ingresos, gastos y
-      balance **agregados en SQL**, no en el cliente (RF-19 a RF-21).
-- [ ] 3.2 Resumen del mes actual en la pantalla principal, consistente con el
-      dashboard (RF-22 → AC-30).
-- [ ] 3.3 Frontend: gráfico de gastos por categoría + balance + filtro de fechas,
-      con estado vacío en cero y sin error (AC-31).
-- [ ] 3.4 Tests: AC-27 a AC-31.
-- [ ] Checkpoint: los números del dashboard cuadran con los movimientos cargados.
+- [x] 3.1 `GET /dashboard?desde&hasta&moneda`: totales por categoría, ingresos, gastos y
+      balance **agregados en SQL** con dos `GROUP BY`, no trayendo los movimientos para
+      sumarlos en memoria. Verificado leyendo el SQL que genera EF.
+- [x] 3.2 `ResumenDelMes` usa **el mismo endpoint** pedido con el mes actual: AC-30 se
+      cumple por construcción, no por dos cálculos que hay que mantener de acuerdo.
+- [x] 3.3 Frontend: `PanelDashboard` + `GraficoGastos` (barras horizontales de una sola
+      serie) + filtro de fechas y de moneda, con estado vacío en cero y sin error.
+- [x] 3.4 Tests: 11 de xUnit + 8 de Vitest. Incluye **AC-41, AC-42, AC-43 y AC-46**, que
+      habían quedado pendientes del agregado de monedas porque necesitaban el dashboard.
+- [x] Checkpoint verificado contra MySQL con datos en dos monedas: para cada moneda, los
+      totales por categoría suman exactamente el total de gastos y el balance es
+      ingresos − gastos. Ningún número mezcla monedas.
+
+**Decisiones**: el dashboard devuelve un bloque por moneda armado sobre el catálogo, así
+una moneda sin movimientos aparece en cero en vez de faltar (AC-31). El gráfico es de una
+sola serie (magnitud por categoría), así que va de un solo tono y sin leyenda: el color no
+codifica nada, la longitud sí. Cada barra lleva nombre y monto como etiqueta directa, con
+lo que el gráfico se lee sin hover y sirve de tabla para un lector de pantalla.
 
 ### Paso final — No funcionales medibles
 
 - [ ] Script de carga de 1000 y 10000 movimientos, medición de p95 de dashboard y
-      guardado (AC-32 a AC-34). Si no da, índices por `(UsuarioId, Fecha)`.
+      guardado (AC-32 a AC-34). El índice `(UsuarioId, Fecha, MonedaCodigo)` ya está;
+      la agregación ya ocurre en SQL. Falta medir.
 
 ## La base la comparte v1 (ya resuelto)
 
