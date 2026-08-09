@@ -262,9 +262,10 @@ dotnet ef database update --project backend/GestionGastos.Api
 0 warnings, `dotnet test` **90/90**, `pnpm test` **47/47**, `pnpm lint` limpio,
 `pnpm build` OK, `/health` y `/health/db` en 200.
 
-> Quedó un usuario de prueba del checkpoint de RF-33 en la base de desarrollo
-> (`nota-1786307180@ejemplo.test`). Sus movimientos se borraron por la API; la fila del
-> usuario sigue ahí porque no hay endpoint para darla de baja.
+> Las cuentas de prueba que quedan de verificar algo a mano contra MySQL se sacan con
+> `backend/db/003-borrar-usuarios-de-prueba.sql` (la API no expone baja de cuenta). Borra
+> por dominio `@ejemplo.test`, así que las pruebas conviene hacerlas con mails de ahí.
+> Se corrió el 2026-08-09 y dejó la base limpia.
 
 ## Cosas aprendidas (no repetir)
 
@@ -298,6 +299,10 @@ dotnet ef database update --project backend/GestionGastos.Api
 - **`mysql` no está en el PATH de PowerShell.** Hay que invocar el .exe con ruta
   completa y con `&` por los espacios:
   `& "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe" ...`
+- **Los comandos de esta bitácora son de PowerShell, pero el prefijo `!` de Claude Code
+  los manda a bash.** El `&` de PowerShell ahí es un error de sintaxis. En bash va sin `&`,
+  con la ruta del ejecutable en formato WSL (`/mnt/c/...`) y la del `source` en formato
+  Windows (`C:/...`), porque esa la resuelve `mysql.exe` y no el shell.
 - **Los comandos `dotnet ef` se corren desde `GestionGastos-v2`**, no desde `CursoIA`.
   Desde el directorio equivocado el error es engañoso: "Unable to retrieve project
   metadata. Ensure it's an SDK-style project."
