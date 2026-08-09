@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/backend/">
     <Project Path="backend/GestionGastos.Api/GestionGastos.Api.csproj" />
+    <Project Path="backend/GestionGastos.Herramientas/GestionGastos.Herramientas.csproj" />
     <Project Path="backend/GestionGastos.Tests/GestionGastos.Tests.csproj" />
   </Folder>
 </Solution>

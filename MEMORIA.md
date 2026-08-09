@@ -20,10 +20,10 @@ original; se actualizó el PRD a la versión 4 primero, igual que con monedas.
 
 **Las 33 RF del PRD están cubiertas.** 90 tests de xUnit y 47 de Vitest en verde.
 
-**Lo único que falta es el paso final: medir los no funcionales (AC-32 a AC-34).**
-Está sin empezar y tiene un plan detallado más abajo ("Paso final"). Es el único punto del
-PRD que hoy no está verificado: RNF-01 y RNF-02 son afirmaciones sobre tiempos que
-**nadie midió todavía**.
+**Paso final (no funcionales, AC-32 a AC-34) terminado** — 2026-08-09. Los tres pasan con
+dos órdenes de magnitud de margen; los números están más abajo.
+
+**El PRD está cubierto de punta a punta: 33 RF y 53 AC, todos verificados.**
 
 ## Plan general
 
@@ -179,37 +179,50 @@ más fino que la categoría, se resuelve con un catálogo de etiquetas, no estir
       Al **editar** no se limpia nada acá: salir del modo edición ya lo hace, vía el efecto
       sobre `enEdicion`.
 
-### Paso final — No funcionales medibles ⬅️ SIGUIENTE (sin empezar)
+### Paso final — No funcionales medibles ✅ COMPLETADO — 2026-08-09
 
-**Qué hay que probar** (los tres AC son mediciones sobre **100 ejecuciones**, p95):
+**Los tres AC pasan, con dos órdenes de magnitud de margen.** Medido con
+`backend/GestionGastos.Herramientas`, contra la API en Release y MySQL real, p95 sobre
+100 ejecuciones y 10 de calentamiento descartadas.
 
-| AC | Escenario | Umbral |
+| AC | Escenario | Umbral | Medido | Margen |
+|---|---|---|---|---|
+| AC-32 (RNF-01) | Dashboard, cuenta con 1000 movimientos | < 2 s | **11,3 ms** | ×177 |
+| AC-33 (RNF-01) | Dashboard, cuenta con 10000 movimientos | < 4 s | **72,2 ms** | ×55 |
+| AC-34 (RNF-02) | `POST /movimientos` válido | < 1 s | **7,8 ms** | ×128 |
+
+**Los números de dashboard son del peor caso, no del uso normal.** Sin parámetros el
+dashboard mira solo el mes actual, y los datos van repartidos en dos años: así medía 5-8 ms
+porque agregaba ~1/24 de la cuenta. Lo que está en la tabla es con un rango que cubre
+**todos** los movimientos sembrados. El uso normal es bastante más rápido:
+
+| Escenario | mes actual | rango completo |
 |---|---|---|
-| AC-32 (RNF-01) | Dashboard con 1000 movimientos en la cuenta | p95 < 2 s |
-| AC-33 (RNF-01) | Dashboard con 10000 movimientos en la cuenta | p95 < 4 s |
-| AC-34 (RNF-02) | `POST /movimientos` con el formulario válido | p95 < 1 s |
+| 1000 movimientos | 5,3 ms | 11,3 ms |
+| 10000 movimientos | 7,6 ms | 72,2 ms |
 
-**Lo que ya juega a favor** (no hace falta rehacerlo, sí confirmarlo con números):
+F.4 (`EXPLAIN` y luego índices) **no hizo falta**: nada estuvo ni cerca de fallar. La
+agregación en SQL con dos `GROUP BY` y el índice `(UsuarioId, Fecha, MonedaCodigo)` ya
+alcanzaban; ahora está confirmado con números y no solo por lectura del SQL.
 
-- La agregación del dashboard ocurre en la base, con dos `GROUP BY`. Se verificó leyendo
-  el SQL en el log de EF; devuelve a lo sumo una fila por (moneda × categoría), no una por
-  movimiento. Es la mitigación que el propio PRD anota para el RNF-01.
-- El índice `(UsuarioId, Fecha, MonedaCodigo)` ya existe y cubre el filtro del dashboard.
+**La herramienta** (`backend/GestionGastos.Herramientas`, consola, no se despliega):
 
-**Plan sugerido**
+```powershell
+dotnet run -c Release --project backend/GestionGastos.Herramientas -- sembrar 10000
+dotnet run -c Release --project backend/GestionGastos.Herramientas -- medir
+dotnet run -c Release --project backend/GestionGastos.Herramientas -- limpiar
+```
 
-- [ ] F.1 Sembrador de datos. Un proyecto de consola aparte
-      (`backend/GestionGastos.Herramientas`) que inserte N movimientos vía EF para un
-      usuario dedicado, repartidos entre categorías, monedas y fechas de varios meses.
-      **No hacerlo con 10000 POST por HTTP**: tarda muchísimo y además mide otra cosa.
-- [ ] F.2 Medición. 100 pedidos a `GET /dashboard` y 100 a `POST /movimientos`,
-      quedándose con el p95 de cada uno. Sirve un script de PowerShell con
-      `Measure-Command`, o un `dotnet run` que use `HttpClient` y `Stopwatch`.
-- [ ] F.3 Correr los tres escenarios y anotar los números acá, pasen o no pasen.
-- [ ] F.4 Si alguno no da: mirar el plan de ejecución (`EXPLAIN`) antes de tocar nada.
-      Recién ahí, índices adicionales.
+- Comparte el `UserSecretsId` con la API, así lee la misma cadena de conexión sin
+  configurar ni copiar nada.
+- `sembrar` inserta por EF y no por HTTP: 10000 POST tardan muchísimo y medirían el costo
+  de la API, no el del dashboard. Es idempotente (borra lo anterior) y usa semilla fija,
+  así que dos corridas iguales dan los mismos datos y se pueden comparar.
+- La cuenta de carga es `carga@ejemplo.test`, que cae bajo el criterio de
+  `003-borrar-usuarios-de-prueba.sql`. `limpiar` la borra desde la herramienta, que es más
+  cómodo: no hay que pedir la contraseña de MySQL. **Ya se corrió**: la base quedó limpia.
 
-**Cómo medir para que el número signifique algo**
+**Cómo medir para que el número signifique algo** (por si hay que rehacerlo)
 
 - Contra la **API real y MySQL**, nunca contra los tests: esos corren sobre SQLite en
   memoria y darían un número que no existe en producción.
@@ -217,8 +230,10 @@ más fino que la categoría, se resuelve con un catálogo de etiquetas, no estir
 - **Descartar las primeras corridas**: el primer pedido paga JIT, apertura del pool de
   conexiones y el primer plan de consulta. Medir en caliente.
 - El p95 se calcula del lado del cliente sobre los 100 tiempos, no promediando.
-- Usar un **usuario dedicado** para la carga y borrarlo al terminar, así los 10000
-  movimientos no quedan ensuciando la base de desarrollo.
+- El cuerpo de la respuesta se lee **dentro** de la medición: el AC habla del tiempo hasta
+  ver los datos, no hasta recibir los headers.
+- Ojo con el período del dashboard: si los datos están repartidos en meses y el pedido va
+  sin rango, se está midiendo una fracción de la cuenta.
 
 ## La base la comparte v1 (ya resuelto)
 
@@ -316,6 +331,13 @@ dotnet ef database update --project backend/GestionGastos.Api
   esquema, mirar qué hay ahí: no era una base vacía dedicada a v2.
 - **`dotnet ef` 10.0.5 funciona con los paquetes de EF Core 9.0.18**, no hace falta
   bajar la herramienta.
+- **Un proyecto nuevo que referencia a la API tiene que declarar EF explícito.** Pomelo
+  9.0.0 arrastra `EntityFrameworkCore.Relational` 9.0.0 por transitiva y choca con la
+  9.0.18 de la API (`MSB3277`). Se arregla poniendo los `PackageReference` de EF en la
+  misma versión.
+- **La API expone un `Program` público** (para los tests), así que en otra consola con
+  top-level statements nombrarlo da `CS0436`. Para user-secrets va
+  `Assembly.GetExecutingAssembly()` en vez de `typeof(Program).Assembly`.
 - `dotnet test GestionGastos.slnx` **no funciona** (`MSB1009`): hay que pasarle el
   `.csproj` de tests. `dotnet build` sí acepta el `.slnx`.
 - `vite.config.ts` tiene que importar `defineConfig` de **`vitest/config`**, no de
