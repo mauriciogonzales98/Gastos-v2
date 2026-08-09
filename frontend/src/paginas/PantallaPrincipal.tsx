@@ -135,6 +135,8 @@ export function PantallaPrincipal() {
           </p>
         )}
 
+        <ResumenDelMes resumen={resumenDelMes} monedas={monedas} />
+
         <FormularioMovimiento
           categorias={categorias}
           monedas={monedas}
@@ -142,8 +144,6 @@ export function PantallaPrincipal() {
           onGuardado={() => void despuesDeGuardar()}
           onCancelar={() => setEnEdicion(null)}
         />
-
-        <ResumenDelMes resumen={resumenDelMes} monedas={monedas} />
 
         <PanelCategorias categorias={categorias} onCambio={despuesDeTocarCategorias} />
 
