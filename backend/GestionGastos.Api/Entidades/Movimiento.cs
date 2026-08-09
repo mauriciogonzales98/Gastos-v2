@@ -6,6 +6,12 @@ namespace GestionGastos.Api.Entidades;
 /// </summary>
 public class Movimiento
 {
+    /// <summary>
+    /// RF-33. Una nota, no un campo de observaciones: entra "expensas + cochera" y no
+    /// entra un parrafo. El mapeo y la validacion salen los dos de aca.
+    /// </summary>
+    public const int LargoMaximoDescripcion = 120;
+
     public Guid Id { get; set; }
 
     public Guid UsuarioId { get; set; }
@@ -29,6 +35,14 @@ public class Movimiento
 
     /// <summary>Fecha del movimiento, sin hora: es un dato del usuario, no del sistema.</summary>
     public DateOnly Fecha { get; set; }
+
+    /// <summary>
+    /// Nota descriptiva opcional (RF-33): "alquiler agosto", "expensas + cochera". Es para
+    /// leer, no para analizar: no se busca, no se filtra y no se agrupa. La categoria sigue
+    /// siendo el unico eje del dashboard.
+    /// "Sin nota" es siempre null, nunca cadena vacia: un solo estado y no dos.
+    /// </summary>
+    public string? Descripcion { get; set; }
 
     public DateTime FechaCreacionUtc { get; set; }
 }

@@ -73,13 +73,15 @@ public static class ClienteApi
         decimal monto,
         Guid categoriaId,
         DateOnly? fecha = null,
-        string? moneda = null) =>
+        string? moneda = null,
+        string? descripcion = null) =>
         cliente.PostAsJsonAsync("/movimientos", new
         {
             monto,
             categoriaId,
             fecha = fecha?.ToString("yyyy-MM-dd"),
             moneda,
+            descripcion,
         });
 
     public static Task<HttpResponseMessage> ModificarMovimiento(
@@ -88,13 +90,15 @@ public static class ClienteApi
         decimal monto,
         Guid categoriaId,
         DateOnly fecha,
-        string? moneda = null) =>
+        string? moneda = null,
+        string? descripcion = null) =>
         cliente.PutAsJsonAsync($"/movimientos/{id}", new
         {
             monto,
             categoriaId,
             fecha = fecha.ToString("yyyy-MM-dd"),
             moneda,
+            descripcion,
         });
 
     public static Task<HttpResponseMessage> EliminarMovimiento(this HttpClient cliente, Guid id) =>
@@ -113,9 +117,10 @@ public static class ClienteApi
         decimal monto,
         Guid categoriaId,
         DateOnly? fecha = null,
-        string? moneda = null)
+        string? moneda = null,
+        string? descripcion = null)
     {
-        var respuesta = await cliente.CrearMovimiento(monto, categoriaId, fecha, moneda);
+        var respuesta = await cliente.CrearMovimiento(monto, categoriaId, fecha, moneda, descripcion);
         respuesta.EnsureSuccessStatusCode();
         return await respuesta.LeerComo<MovimientoResponse>();
     }

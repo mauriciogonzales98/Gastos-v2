@@ -83,7 +83,7 @@ public static class EndpointsMovimientos
             .ThenByDescending(m => m.FechaCreacionUtc)
             .Select(m => new MovimientoResponse(
                 m.Id, m.Monto, m.MonedaCodigo, m.Fecha,
-                m.CategoriaId, m.Categoria!.Nombre, m.Categoria.Tipo))
+                m.CategoriaId, m.Categoria!.Nombre, m.Categoria.Tipo, m.Descripcion))
             .ToListAsync(ct);
 
         return Results.Ok(movimientos);
@@ -113,6 +113,7 @@ public static class EndpointsMovimientos
             Monto = datos.Monto,
             MonedaCodigo = datos.Moneda.Codigo,
             Fecha = datos.Fecha,
+            Descripcion = datos.Descripcion,
             FechaCreacionUtc = DateTime.UtcNow,
         };
 
@@ -149,6 +150,9 @@ public static class EndpointsMovimientos
         movimiento.MonedaCodigo = datos.Moneda.Codigo;
         movimiento.Fecha = datos.Fecha;
         movimiento.CategoriaId = datos.Categoria.Id;
+        // AC-53: mandar la nota en blanco la borra. No hay forma de "dejarla como estaba"
+        // porque el PUT reemplaza el movimiento entero, igual que los otros campos.
+        movimiento.Descripcion = datos.Descripcion;
         await db.SaveChangesAsync(ct);
 
         return Results.Ok(Responder(movimiento, datos.Categoria));
@@ -182,10 +186,10 @@ public static class EndpointsMovimientos
         db.Movimientos.SingleOrDefaultAsync(m => m.Id == id && m.UsuarioId == usuarioId, ct);
 
     /// <summary>
-    /// RF-13, RF-23 y RF-26: monto mayor a cero con hasta dos decimales, categoria valida
-    /// y moneda valida.
+    /// RF-13, RF-23, RF-26 y RF-33: monto mayor a cero con hasta dos decimales, categoria
+    /// valida, moneda valida y nota dentro del largo maximo.
     /// </summary>
-    private static async Task<((decimal Monto, Moneda Moneda, DateOnly Fecha, Categoria Categoria) Datos, IResult? Rechazo)>
+    private static async Task<((decimal Monto, Moneda Moneda, DateOnly Fecha, Categoria Categoria, string? Descripcion) Datos, IResult? Rechazo)>
         ValidarPedido(
             GuardarMovimientoRequest pedido,
             Guid usuarioId,
@@ -242,6 +246,16 @@ public static class EndpointsMovimientos
             }
         }
 
+        // RF-33: la nota es opcional, asi que solo se valida el largo. Se recorta primero
+        // para que 130 espacios no cuenten como una nota de 130 caracteres.
+        var descripcion = pedido.Descripcion?.Trim();
+
+        if (descripcion is { Length: > Movimiento.LargoMaximoDescripcion })
+        {
+            errores["descripcion"] =
+                [$"La nota admite hasta {Movimiento.LargoMaximoDescripcion} caracteres."];
+        }
+
         if (errores.Count > 0)
         {
             return (default, Results.ValidationProblem(errores));
@@ -251,10 +265,14 @@ public static class EndpointsMovimientos
         // tambien vive aca para que valga sea cual sea el cliente.
         var fecha = pedido.Fecha ?? DateOnly.FromDateTime(DateTime.Now);
 
-        return ((pedido.Monto!.Value, moneda, fecha, categoria!), null);
+        // AC-51: omitida, null o en blanco son todas "sin nota". Se guarda null y no "",
+        // asi el estado "sin nota" es uno solo.
+        var nota = string.IsNullOrEmpty(descripcion) ? null : descripcion;
+
+        return ((pedido.Monto!.Value, moneda!, fecha, categoria!, nota), null);
     }
 
     private static MovimientoResponse Responder(Movimiento movimiento, Categoria categoria) =>
         new(movimiento.Id, movimiento.Monto, movimiento.MonedaCodigo, movimiento.Fecha,
-            categoria.Id, categoria.Nombre, categoria.Tipo);
+            categoria.Id, categoria.Nombre, categoria.Tipo, movimiento.Descripcion);
 }

@@ -62,9 +62,35 @@ describe('formulario de carga (RF-10 a RF-13)', () => {
       moneda: 'ARS',
       fecha: hoy(),
       categoriaId: 'cat-comida',
+      descripcion: null,
     })
     // Se vuelve a pedir el listado: el primero fue el de la carga inicial.
     expect(backend.pedidosA('GET /movimientos').length).toBeGreaterThan(1)
+  })
+
+  it('despues de un alta exitosa el monto queda vacio para cargar el siguiente', async () => {
+    const backend = backendConSesion().responder('POST /movimientos', {
+      estado: 201,
+      cuerpo: movimiento(),
+    })
+    await abrirApp(backend)
+
+    await cargarMovimiento('1500', 'cat-comida')
+
+    await waitFor(() => expect(screen.getByLabelText('Monto')).toHaveValue(null))
+  })
+
+  it('si el alta falla el monto se conserva para poder corregirlo', async () => {
+    const backend = backendConSesion().responder('POST /movimientos', {
+      estado: 400,
+      cuerpo: { errors: { monto: ['El monto admite hasta 2 decimales.'] } },
+    })
+    await abrirApp(backend)
+
+    await cargarMovimiento('10.999', 'cat-comida')
+
+    await screen.findByRole('alert')
+    expect(screen.getByLabelText('Monto')).toHaveValue(10.999)
   })
 
   it('AC-18: sin categoría no se guarda nada y se muestra el motivo', async () => {
@@ -198,5 +224,79 @@ describe('edición y baja (RF-14, RF-15)', () => {
     await waitFor(() => expect(backend.pedidosA('DELETE /movimientos/:id')).toHaveLength(1))
     expect(backend.pedidosA('DELETE /movimientos/:id')[0].ruta).toBe('/movimientos/mov-9')
     expect(backend.pedidosA('GET /movimientos').length).toBeGreaterThan(1)
+  })
+})
+
+describe('nota del movimiento (RF-33)', () => {
+  it('AC-50: la nota se manda en el alta y se ve en el listado', async () => {
+    const backend = backendConSesion()
+      .responder('POST /movimientos', { estado: 201, cuerpo: movimiento() })
+      .responder('GET /movimientos', {
+        estado: 200,
+        cuerpo: [movimiento({ descripcion: 'alquiler agosto' })],
+      })
+    await abrirApp(backend)
+
+    await userEvent.type(screen.getByLabelText('Monto'), '450000')
+    await userEvent.type(screen.getByLabelText('Nota (opcional)'), 'alquiler agosto')
+    await userEvent.selectOptions(screen.getByLabelText('Categoría'), 'cat-comida')
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar' }))
+
+    await waitFor(() => expect(backend.pedidosA('POST /movimientos')).toHaveLength(1))
+    expect(backend.pedidosA('POST /movimientos')[0].cuerpo).toMatchObject({
+      descripcion: 'alquiler agosto',
+    })
+    expect(await screen.findByText('alquiler agosto')).toBeInTheDocument()
+  })
+
+  it('AC-51: sin nota se manda null y el listado no muestra relleno', async () => {
+    const backend = backendConSesion()
+      .responder('POST /movimientos', { estado: 201, cuerpo: movimiento() })
+      .responder('GET /movimientos', { estado: 200, cuerpo: [movimiento()] })
+    await abrirApp(backend)
+
+    await cargarMovimiento('1500', 'cat-comida')
+
+    await waitFor(() => expect(backend.pedidosA('POST /movimientos')).toHaveLength(1))
+    expect(backend.pedidosA('POST /movimientos')[0].cuerpo).toMatchObject({ descripcion: null })
+  })
+
+  it('AC-52: una nota demasiado larga se rechaza sin llegar al backend', async () => {
+    const backend = await abrirApp(backendConSesion())
+
+    await userEvent.type(screen.getByLabelText('Monto'), '1500')
+    await userEvent.selectOptions(screen.getByLabelText('Categoría'), 'cat-comida')
+    // `paste` en vez de `type`: escribir 121 caracteres de a uno es lentísimo.
+    await userEvent.click(screen.getByLabelText('Nota (opcional)'))
+    await userEvent.paste('a'.repeat(121))
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('hasta 120 caracteres')
+    expect(backend.pedidosA('POST /movimientos')).toHaveLength(0)
+  })
+
+  it('despues de un alta exitosa la nota tambien queda vacia', async () => {
+    const backend = backendConSesion().responder('POST /movimientos', {
+      estado: 201,
+      cuerpo: movimiento(),
+    })
+    await abrirApp(backend)
+
+    await userEvent.type(screen.getByLabelText('Nota (opcional)'), 'verduleria')
+    await cargarMovimiento('1500', 'cat-comida')
+
+    await waitFor(() => expect(screen.getByLabelText('Nota (opcional)')).toHaveValue(''))
+  })
+
+  it('AC-53: editar carga la nota existente en el formulario', async () => {
+    const backend = backendConSesion().responder('GET /movimientos', {
+      estado: 200,
+      cuerpo: [movimiento({ descripcion: 'expensas' })],
+    })
+    await abrirApp(backend)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+
+    expect(screen.getByLabelText('Nota (opcional)')).toHaveValue('expensas')
   })
 })

@@ -92,6 +92,8 @@ export type Movimiento = {
   categoriaId: string
   categoriaNombre: string
   tipo: TipoCategoria
+  /** Nota libre opcional (RF-33). null cuando no hay: nunca cadena vacía. */
+  descripcion: string | null
 }
 
 export type DatosMovimiento = {
@@ -99,6 +101,7 @@ export type DatosMovimiento = {
   moneda: CodigoMoneda
   fecha: string
   categoriaId: string
+  descripcion: string | null
 }
 
 export type TotalPorCategoria = {

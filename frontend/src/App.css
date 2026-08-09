@@ -264,6 +264,18 @@
   gap: 1rem;
 }
 
+/* La nota (RF-33) es texto libre: aprovecha el ancho que sobra en la fila. */
+.formulario-movimiento .campo-ancho {
+  flex: 1 1 18rem;
+}
+
+/* Una nota larga no tiene que ensanchar la tabla ni empujar el monto. */
+.listado td.nota {
+  max-width: 22rem;
+  overflow-wrap: anywhere;
+  color: #4b5563;
+}
+
 .formulario-movimiento .acciones {
   display: flex;
   gap: 0.5rem;

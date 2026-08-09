@@ -10,6 +10,9 @@ import {
 } from '../api/cliente'
 import { hoy } from '../utiles/fechas'
 
+/** RF-33. Tiene que coincidir con `Movimiento.LargoMaximoDescripcion` del backend. */
+const LARGO_MAXIMO_DESCRIPCION = 120
+
 type Props = {
   categorias: Categoria[]
   monedas: Moneda[]
@@ -34,6 +37,8 @@ export function FormularioMovimiento({
   const [moneda, setMoneda] = useState<CodigoMoneda>('')
   const [categoriaId, setCategoriaId] = useState('')
   const [fecha, setFecha] = useState(hoy)
+  // RF-33: nota opcional. En el estado es siempre string; el null lo arma el envío.
+  const [descripcion, setDescripcion] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
@@ -47,10 +52,12 @@ export function FormularioMovimiento({
       setMoneda(enEdicion.moneda)
       setCategoriaId(enEdicion.categoriaId)
       setFecha(enEdicion.fecha)
+      setDescripcion(enEdicion.descripcion ?? '')
     } else {
       setMonto('')
       setCategoriaId('')
       setFecha(hoy())
+      setDescripcion('')
     }
     setError(null)
   }, [enEdicion])
@@ -82,12 +89,28 @@ export function FormularioMovimiento({
       return
     }
 
+    // RF-33 / AC-52. Se valida acá además del backend para que el motivo se vea sin
+    // esperar el viaje al servidor. El límite real lo sigue imponiendo la API.
+    const nota = descripcion.trim()
+    if (nota.length > LARGO_MAXIMO_DESCRIPCION) {
+      setError(`La nota admite hasta ${LARGO_MAXIMO_DESCRIPCION} caracteres.`)
+      return
+    }
+
     setEnviando(true)
     try {
-      const datos = { monto: montoNumerico, moneda, fecha, categoriaId }
-      await (enEdicion
-        ? api.movimientos.modificar(enEdicion.id, datos)
-        : api.movimientos.crear(datos))
+      // AC-51: sin nota se manda null, no cadena vacía.
+      const datos = { monto: montoNumerico, moneda, fecha, categoriaId, descripcion: nota || null }
+      if (enEdicion) {
+        await api.movimientos.modificar(enEdicion.id, datos)
+      } else {
+        await api.movimientos.crear(datos)
+        // Alta: monto y nota se limpian para poder cargar el siguiente sin borrar a mano.
+        // Al editar no hace falta, porque salir de edicion ya vuelve a dejar el
+        // formulario en blanco (efecto sobre `enEdicion`).
+        setMonto('')
+        setDescripcion('')
+      }
       onGuardado()
     } catch (fallo: unknown) {
       setError(
@@ -171,6 +194,21 @@ export function FormularioMovimiento({
             type="date"
             value={fecha}
             onChange={(evento) => setFecha(evento.target.value)}
+          />
+        </div>
+
+        {/*
+          RF-33: va al final y dice "opcional" en el propio label, porque el camino rapido
+          de carga es monto + categoria y la nota no tiene que frenarlo.
+        */}
+        <div className="campo campo-ancho">
+          <label htmlFor="descripcion">Nota (opcional)</label>
+          <input
+            id="descripcion"
+            type="text"
+            placeholder="Ej: alquiler agosto"
+            value={descripcion}
+            onChange={(evento) => setDescripcion(evento.target.value)}
           />
         </div>
       </div>

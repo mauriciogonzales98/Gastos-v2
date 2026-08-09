@@ -79,6 +79,9 @@ public class GestionGastosDbContext(DbContextOptions<GestionGastosDbContext> opt
             movimiento.Property(m => m.Monto).HasPrecision(18, 2).IsRequired();
             movimiento.Property(m => m.MonedaCodigo).HasMaxLength(3).IsFixedLength().IsRequired();
             movimiento.Property(m => m.Fecha).IsRequired();
+            // RF-33: opcional, asi que nullable. Sin indice a proposito: no se busca por
+            // ella. El limite tambien vive en la base y no solo en la validacion de la API.
+            movimiento.Property(m => m.Descripcion).HasMaxLength(Movimiento.LargoMaximoDescripcion);
             movimiento.Property(m => m.FechaCreacionUtc).IsRequired();
 
             movimiento.HasOne(m => m.Usuario)

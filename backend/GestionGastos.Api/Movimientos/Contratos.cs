@@ -8,6 +8,8 @@ namespace GestionGastos.Api.Movimientos;
 /// movimiento de una categoria dada de baja siga mostrando su nombre, AC-14).
 /// La moneda viaja como codigo: el simbolo y los decimales salen de GET /monedas.
 /// </summary>
+/// La descripcion viaja como null cuando no hay nota (RF-33): el frontend no tiene que
+/// distinguir null de cadena vacia.
 public record MovimientoResponse(
     Guid Id,
     decimal Monto,
@@ -15,14 +17,18 @@ public record MovimientoResponse(
     DateOnly Fecha,
     Guid CategoriaId,
     string CategoriaNombre,
-    TipoCategoria Tipo);
+    TipoCategoria Tipo,
+    string? Descripcion);
 
 /// <summary>
 /// Omitir la moneda es valido y significa la predeterminada del catalogo (RF-25, AC-38).
 /// Mandar un codigo que no este en el catalogo, no (RF-26, AC-39).
+/// La descripcion es opcional (RF-33): omitirla, mandarla null o mandarla en blanco son
+/// todos "sin nota" (AC-51).
 /// </summary>
 public record GuardarMovimientoRequest(
     decimal? Monto,
     DateOnly? Fecha,
     Guid? CategoriaId,
-    string? Moneda);
+    string? Moneda,
+    string? Descripcion);

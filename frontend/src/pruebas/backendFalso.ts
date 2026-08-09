@@ -107,6 +107,7 @@ export function movimiento(parcial: Partial<Movimiento> = {}): Movimiento {
     categoriaId: 'cat-comida',
     categoriaNombre: 'Comida',
     tipo: 'Gasto',
+    descripcion: null,
     ...parcial,
   }
 }

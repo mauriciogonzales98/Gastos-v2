@@ -91,6 +91,7 @@ export function ListadoMovimientos({
             <tr>
               <th>Fecha</th>
               <th>Categor&iacute;a</th>
+              <th>Nota</th>
               <th className="numero">Monto</th>
               <th>
                 <span className="oculto-visualmente">Acciones</span>
@@ -107,6 +108,8 @@ export function ListadoMovimientos({
                     {movimiento.tipo === 'Gasto' ? 'gasto' : 'ingreso'}
                   </span>
                 </td>
+                {/* AC-51: sin nota la celda queda vacía, sin texto de relleno. */}
+                <td className="nota">{movimiento.descripcion}</td>
                 <td className={`numero ${movimiento.tipo.toLowerCase()}`}>
                   {movimiento.tipo === 'Gasto' ? '-' : '+'}{' '}
                   {comoMonto(movimiento.monto, movimiento.moneda, monedas)}
