@@ -1,6 +1,8 @@
 # PRD-001: Gestion de Gastos — Aplicacion para el registro y gestion de gastos personales
 
-> Versión 3 del PRD: agrega soporte de varias monedas (inicialmente pesos y dólares) con
+> Versión 4 del PRD: agrega una nota descriptiva opcional por movimiento (RF-33), para
+> registrar en qué se gastó más allá de la categoría, sin abrir una segunda taxonomía.
+> Versión 3: soporte de varias monedas (inicialmente pesos y dólares) con
 > totales separados, sin conversión. Los RF y AC nuevos se numeran al final (RF-23+, AC-37+) en
 > lugar de insertarse en el medio, para no invalidar las referencias que ya existen en el
 > código y los tests.
@@ -59,6 +61,7 @@ datos son privados y solo él los ve.
 - RF-26: El sistema debe rechazar el registro de un movimiento cuya moneda no esté en el catálogo.
 - RF-31: El sistema debe ofrecer un catálogo de monedas, no modificable por el usuario, que contiene inicialmente pesos y dólares.
 - RF-32: El sistema debe permitir sumar una moneda al catálogo sin modificar el código de la aplicación.
+- RF-33: El sistema debe permitir asociar a cada movimiento una nota descriptiva opcional de texto libre, de hasta 120 caracteres, y mostrarla en el listado. La nota es descriptiva: no clasifica ni agrupa movimientos.
 
 ### Listado de movimientos
 
@@ -115,6 +118,10 @@ datos son privados y solo él los ve.
 - AC-19 (RF-14): Dado un movimiento propio ya registrado, cuando el usuario modifica su monto y guarda, entonces el listado, el total por categoría y el balance del dashboard reflejan el monto nuevo y no el anterior.
 - AC-20 (RF-14): Dado un movimiento propio ya registrado, cuando el usuario cambia su categoría y su fecha y guarda, entonces su monto deja de sumar en el total de la categoría anterior y suma en el de la nueva, y el movimiento aparece en el listado solo si su fecha nueva cae dentro del período filtrado.
 - AC-21 (RF-15): Dado un movimiento propio ya registrado, cuando el usuario lo elimina, entonces deja de aparecer en el listado y su monto deja de sumar en el dashboard.
+- AC-50 (RF-33): Dado que el usuario completa monto, categoría y una nota, cuando guarda, entonces el movimiento queda registrado con esa nota y el listado la muestra junto al movimiento.
+- AC-51 (RF-33): Dado un formulario con la nota vacía, cuando el usuario guarda, entonces el movimiento se registra sin nota y el listado lo muestra sin error ni texto de relleno.
+- AC-52 (RF-33): Dado un formulario con una nota de más de 120 caracteres, cuando el usuario intenta guardar, entonces el sistema rechaza el guardado, muestra el motivo y no se crea ningún movimiento.
+- AC-53 (RF-33): Dado un movimiento propio con nota, cuando el usuario la edita o la borra y guarda, entonces el listado refleja el valor nuevo y los totales del dashboard no cambian.
 
 ### Listado de movimientos
 
@@ -171,10 +178,13 @@ datos son privados y solo él los ve.
 - Conversión de divisas: no hay cotización, ni total consolidado, ni balance único. Los montos de cada moneda se suman por separado y se muestran por separado (RF-29). Lo que sí entra es registrar en varias monedas (RF-24)
 - Alta, edición y baja de monedas desde la interfaz: el catálogo se administra como dato (RF-32), no hay pantalla para gestionarlo
 - Adjuntar comprobantes o archivos a un movimiento
+- Buscar, filtrar, agrupar o totalizar por la nota del movimiento (RF-33): la nota se lee, no se analiza. Lo que sí entra es registrarla y verla en el listado
+- Etiquetas reutilizables sobre los movimientos: una segunda dimensión de clasificación además de la categoría
 
 ## Riesgos y Dependencias
 
-- Riesgo: la categorización manual repetitiva puede generar la misma fricción que se buscaba evitar → mitigación: catálogo de categorías predefinido y acotado (RF-06), sin campo libre en el formulario de carga.
+- Riesgo: la categorización manual repetitiva puede generar la misma fricción que se buscaba evitar → mitigación: catálogo de categorías predefinido y acotado (RF-06). El único campo libre del formulario es la nota (RF-33), que es opcional y no clasifica: el usuario nunca tiene que escribir nada para registrar un movimiento.
+- Riesgo: la nota libre (RF-33) puede convertirse en una segunda taxonomía informal ("alquiler", "Alquiler", "alq") que el sistema no entiende y que da una falsa sensación de estar clasificando → mitigación: la nota no se busca, no se filtra y no se agrupa (ver Fuera de Alcance). La categoría sigue siendo el único eje de análisis del dashboard. Si aparece la necesidad real de totalizar por algo más fino, se resuelve con un catálogo de etiquetas, no estirando la nota.
 - Riesgo: permitir categorías propias (RF-07) reintroduce esa fricción si el usuario crea muchas categorías casi iguales → mitigación: las predefinidas son la opción por defecto y la creación de una categoría propia es una acción aparte, fuera del camino rápido de carga.
 - Riesgo: la baja lógica de categorías (RF-09) puede hacer reaparecer categorías eliminadas en selectores o filtros si las consultas no excluyen las dadas de baja → mitigación: AC-14 verifica explícitamente el comportamiento en formulario, listado y dashboard.
 - Riesgo: el objetivo de RNF-01 con 10000 movimientos puede no alcanzarse si los totales se calculan en el cliente → mitigación: agregar los totales en la consulta a la base de datos, no en el frontend.
