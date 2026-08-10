@@ -179,6 +179,38 @@ más fino que la categoría, se resuelve con un catálogo de etiquetas, no estir
       Al **editar** no se limpia nada acá: salir del modo edición ya lo hace, vía el efecto
       sobre `enEdicion`.
 
+### Correcciones de frontend (tanda 2) ✅ COMPLETADA — 2026-08-10
+
+Pedido del usuario: siete correcciones de presentación. **Ninguna agrega features**: es la
+misma funcionalidad, mejor puesta. El backend no se tocó.
+
+- [x] **La edición del movimiento va en un modal** (`ui/Modal.tsx`, `<dialog>` nativo).
+      Cierra con Escape, con "Cancelar", con "Cerrar" y al guardar.
+- [x] **Tres pestañas** (`ui/Pestanas.tsx`): Movimientos (resumen + alta + listado),
+      Dashboard y Categorías.
+- [x] Los botones de las filas de categoría dicen **solo la acción**: "Renombrar",
+      "Eliminar".
+- [x] Botones de fila **más chicos** (clase `.compacto`).
+- [x] **Separador de miles en el monto** mientras se escribe (`utiles/montos.ts`).
+- [x] **Flecha propia en los `<select>`**, en SVG inline, con el color del tema.
+- [x] Tests: 71 de Vitest (eran 47). Backend intacto: 90/90 de xUnit.
+
+**Decisiones**:
+
+- **Un solo formulario en pantalla.** Al editar, el de alta se desmonta y el mismo
+  componente se monta dentro del modal. Con los dos a la vez habría dos campos "Monto"
+  compitiendo por el mismo rótulo, que rompe tanto los tests como un lector de pantalla.
+- **`<dialog>` nativo y no un div propio**: trae el fondo inerte, la trampa de foco, el
+  Escape y la capa superior sin pelear con `z-index`.
+- **El estado vive en `PantallaPrincipal`, no en las pestañas.** Cambiar de pestaña no
+  vuelve a pedir nada ni pierde los filtros; hay un test que lo fija contando pedidos.
+- **El nombre de la categoría acompaña al botón como `aria-describedby`**, no como
+  rótulo. Así el nombre accesible del botón es lo que hace ("Eliminar") y de qué fila es
+  lo dice la descripción. Los tests ubican el botón dentro de su `<li>`, que es lo que
+  hace una persona.
+- **El resumen del mes se queda en la pestaña Movimientos**: es la pantalla de trabajo
+  diario. El dashboard con su propio filtro de período es otra cosa.
+
 ### Paso final — No funcionales medibles ✅ COMPLETADO — 2026-08-09
 
 **Los tres AC pasan, con dos órdenes de magnitud de margen.** Medido con
@@ -273,9 +305,8 @@ dotnet ef database update --project backend/GestionGastos.Api
 | API | `http://localhost:5157` |
 | Frontend | `http://localhost:5173`, con proxy de `/api` al backend |
 
-Último estado verde (2026-08-09, al cerrar RF-33): `dotnet build` 0 errores /
-0 warnings, `dotnet test` **90/90**, `pnpm test` **47/47**, `pnpm lint` limpio,
-`pnpm build` OK, `/health` y `/health/db` en 200.
+Último estado verde (2026-08-10, al cerrar las correcciones de frontend): `dotnet test`
+**90/90**, `pnpm test` **71/71**, `pnpm lint` limpio, `pnpm build` OK.
 
 > Las cuentas de prueba que quedan de verificar algo a mano contra MySQL se sacan con
 > `backend/db/003-borrar-usuarios-de-prueba.sql` (la API no expone baja de cuenta). Borra
@@ -301,6 +332,19 @@ dotnet ef database update --project backend/GestionGastos.Api
 - **`TaskStop` no mata el proceso de Windows**, solo el wrapper de WSL. La API queda viva
   y el build siguiente falla con `MSB3027` (archivo bloqueado). Se baja con
   `cmd.exe /c "taskkill /F /IM GestionGastos.Api.exe"`.
+- **Un campo con separador de miles no puede ser `<input type="number">`.** El navegador
+  considera inválido cualquier texto con separadores y devuelve `value` vacío: no hay
+  forma de formatear mientras se escribe. Va `type="text" inputMode="decimal"` y el
+  formato/parseo a mano (`utiles/montos.ts`). Ojo con los asserts de los tests: pasan de
+  `toHaveValue(1500)` a `toHaveValue('1.500,00')`.
+- **`jsdom` 30 no implementa `<dialog>`**: no trae `showModal` ni `close`, no mueve el
+  foco y el Escape no dispara `cancel`. Hay un relleno mínimo en `setupTests.ts`. El
+  listener del Escape va sobre el **documento**, no sobre el `<dialog>`: en jsdom el foco
+  no entra al diálogo y un listener sobre el elemento nunca se dispararía.
+- **El atajo `background` pisa el `background-image`.** Poner una flecha propia en un
+  `select` con `background-image` no funciona si otra regla más específica setea
+  `background: var(--bg)`. Va `background-color`. Lo mismo con `padding` y
+  `padding-right`.
 - **Los formularios van con `noValidate`.** La validación nativa del navegador cancela el
   submit en silencio (un `min`/`step` incumplido y no pasa nada), y varios AC piden que el
   rechazo **muestre el motivo**. Los mensajes los da el formulario, no el navegador.

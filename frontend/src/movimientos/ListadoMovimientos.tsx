@@ -115,10 +115,10 @@ export function ListadoMovimientos({
                   {comoMonto(movimiento.monto, movimiento.moneda, monedas)}
                 </td>
                 <td className="acciones">
-                  <button type="button" onClick={() => onEditar(movimiento)}>
+                  <button type="button" className="compacto" onClick={() => onEditar(movimiento)}>
                     Editar
                   </button>
-                  <button type="button" onClick={() => onEliminar(movimiento)}>
+                  <button type="button" className="compacto" onClick={() => onEliminar(movimiento)}>
                     Eliminar
                   </button>
                 </td>

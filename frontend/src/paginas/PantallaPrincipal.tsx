@@ -15,6 +15,8 @@ import { PanelDashboard } from '../dashboard/PanelDashboard'
 import { ResumenDelMes } from '../dashboard/ResumenDelMes'
 import { FormularioMovimiento } from '../movimientos/FormularioMovimiento'
 import { ListadoMovimientos } from '../movimientos/ListadoMovimientos'
+import { Modal } from '../ui/Modal'
+import { Pestanas } from '../ui/Pestanas'
 import { mesActual } from '../utiles/fechas'
 
 /** Interior de la aplicacion: carga de movimientos, listado con filtros y ABM de categorias. */
@@ -39,6 +41,7 @@ export function PantallaPrincipal() {
     moneda: '',
   }))
   const [enEdicion, setEnEdicion] = useState<Movimiento | null>(null)
+  const [pestana, setPestana] = useState('movimientos')
   const [error, setError] = useState<string | null>(null)
 
   const cargarCategorias = useCallback(async () => {
@@ -116,6 +119,16 @@ export function PantallaPrincipal() {
     await recargarTodo()
   }
 
+  const formulario = (
+    <FormularioMovimiento
+      categorias={categorias}
+      monedas={monedas}
+      enEdicion={enEdicion}
+      onGuardado={() => void despuesDeGuardar()}
+      onCancelar={() => setEnEdicion(null)}
+    />
+  )
+
   return (
     <div className="pantalla-principal">
       <header>
@@ -135,35 +148,61 @@ export function PantallaPrincipal() {
           </p>
         )}
 
-        <ResumenDelMes resumen={resumenDelMes} monedas={monedas} />
+        <Pestanas
+          activa={pestana}
+          onCambiar={setPestana}
+          pestanas={[
+            {
+              id: 'movimientos',
+              etiqueta: 'Movimientos',
+              contenido: (
+                <>
+                  <ResumenDelMes resumen={resumenDelMes} monedas={monedas} />
 
-        <FormularioMovimiento
-          categorias={categorias}
-          monedas={monedas}
-          enEdicion={enEdicion}
-          onGuardado={() => void despuesDeGuardar()}
-          onCancelar={() => setEnEdicion(null)}
-        />
+                  {/* Al editar, el formulario se muda al modal: hay uno solo en pantalla,
+                      asi no quedan dos campos "Monto" compitiendo por el mismo rotulo. */}
+                  {!enEdicion && formulario}
 
-        <PanelCategorias categorias={categorias} onCambio={despuesDeTocarCategorias} />
-
-        <ListadoMovimientos
-          movimientos={movimientos}
-          categorias={categorias}
-          monedas={monedas}
-          filtros={filtros}
-          onCambiarFiltros={setFiltros}
-          onEditar={setEnEdicion}
-          onEliminar={(movimiento) => void eliminar(movimiento)}
-        />
-
-        <PanelDashboard
-          dashboard={dashboard}
-          monedas={monedas}
-          filtros={filtrosDashboard}
-          onCambiarFiltros={setFiltrosDashboard}
+                  <ListadoMovimientos
+                    movimientos={movimientos}
+                    categorias={categorias}
+                    monedas={monedas}
+                    filtros={filtros}
+                    onCambiarFiltros={setFiltros}
+                    onEditar={setEnEdicion}
+                    onEliminar={(movimiento) => void eliminar(movimiento)}
+                  />
+                </>
+              ),
+            },
+            {
+              id: 'dashboard',
+              etiqueta: 'Dashboard',
+              contenido: (
+                <PanelDashboard
+                  dashboard={dashboard}
+                  monedas={monedas}
+                  filtros={filtrosDashboard}
+                  onCambiarFiltros={setFiltrosDashboard}
+                />
+              ),
+            },
+            {
+              id: 'categorias',
+              etiqueta: 'Categorías',
+              contenido: (
+                <PanelCategorias categorias={categorias} onCambio={despuesDeTocarCategorias} />
+              ),
+            },
+          ]}
         />
       </main>
+
+      {enEdicion && (
+        <Modal titulo="Editar movimiento" onCerrar={() => setEnEdicion(null)}>
+          {formulario}
+        </Modal>
+      )}
     </div>
   )
 }

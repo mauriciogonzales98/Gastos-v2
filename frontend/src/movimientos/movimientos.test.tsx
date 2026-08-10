@@ -77,7 +77,7 @@ describe('formulario de carga (RF-10 a RF-13)', () => {
 
     await cargarMovimiento('1500', 'cat-comida')
 
-    await waitFor(() => expect(screen.getByLabelText('Monto')).toHaveValue(null))
+    await waitFor(() => expect(screen.getByLabelText('Monto')).toHaveValue(''))
   })
 
   it('si el alta falla el monto se conserva para poder corregirlo', async () => {
@@ -87,10 +87,10 @@ describe('formulario de carga (RF-10 a RF-13)', () => {
     })
     await abrirApp(backend)
 
-    await cargarMovimiento('10.999', 'cat-comida')
+    await cargarMovimiento('10999', 'cat-comida')
 
     await screen.findByRole('alert')
-    expect(screen.getByLabelText('Monto')).toHaveValue(10.999)
+    expect(screen.getByLabelText('Monto')).toHaveValue('10.999')
   })
 
   it('AC-18: sin categoría no se guarda nada y se muestra el motivo', async () => {
@@ -119,7 +119,7 @@ describe('formulario de carga (RF-10 a RF-13)', () => {
     })
     await abrirApp(backend)
 
-    await cargarMovimiento('10.999', 'cat-comida')
+    await cargarMovimiento('10999', 'cat-comida')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('El monto admite hasta 2 decimales.')
   })
@@ -200,7 +200,7 @@ describe('edición y baja (RF-14, RF-15)', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Editar' }))
 
     expect(screen.getByRole('heading', { name: 'Editar movimiento' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Monto')).toHaveValue(1500)
+    expect(screen.getByLabelText('Monto')).toHaveValue('1.500,00')
 
     await userEvent.clear(screen.getByLabelText('Monto'))
     await userEvent.type(screen.getByLabelText('Monto'), '2500')
@@ -298,5 +298,85 @@ describe('nota del movimiento (RF-33)', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Editar' }))
 
     expect(screen.getByLabelText('Nota (opcional)')).toHaveValue('expensas')
+  })
+})
+
+describe('edición en un modal sobre la pantalla', () => {
+  async function abrirModal() {
+    await abrirApp(backendConSesion([movimiento({ id: 'mov-9', monto: 1500 })]))
+    await userEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+    return screen.getByRole('dialog')
+  }
+
+  it('editar abre el formulario en un diálogo, no en la pantalla de fondo', async () => {
+    const dialogo = await abrirModal()
+
+    expect(dialogo).toHaveAccessibleName('Editar movimiento')
+    expect(within(dialogo).getByRole('heading', { name: 'Editar movimiento' })).toBeInTheDocument()
+
+    // Hay un solo formulario en pantalla: el de alta se muda al modal mientras se edita.
+    expect(screen.queryByRole('heading', { name: 'Nuevo movimiento' })).not.toBeInTheDocument()
+    expect(screen.getAllByLabelText('Monto')).toHaveLength(1)
+  })
+
+  it('el modal se cierra con Escape y vuelve el formulario de alta', async () => {
+    await abrirModal()
+
+    await userEvent.keyboard('{Escape}')
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Nuevo movimiento' })).toBeInTheDocument()
+  })
+
+  it('el modal se cierra con Cancelar y con Cerrar', async () => {
+    const dialogo = await abrirModal()
+
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cerrar' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('al guardar los cambios el modal se cierra solo', async () => {
+    await abrirApp(
+      backendConSesion([movimiento({ id: 'mov-9', monto: 1500 })]).responder(
+        'PUT /movimientos/:id',
+        { estado: 200, cuerpo: movimiento({ id: 'mov-9' }) },
+      ),
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+})
+
+describe('formato del monto en el formulario', () => {
+  it('agrega el separador de miles mientras se escribe', async () => {
+    await abrirApp(backendConSesion())
+
+    await userEvent.type(screen.getByLabelText('Monto'), '450000')
+
+    expect(screen.getByLabelText('Monto')).toHaveValue('450.000')
+  })
+
+  it('el monto formateado llega a la API como número', async () => {
+    const backend = backendConSesion().responder('POST /movimientos', {
+      estado: 201,
+      cuerpo: movimiento(),
+    })
+    await abrirApp(backend)
+
+    await userEvent.type(screen.getByLabelText('Monto'), '1234,56')
+    expect(screen.getByLabelText('Monto')).toHaveValue('1.234,56')
+
+    await userEvent.selectOptions(screen.getByLabelText('Categoría'), 'cat-comida')
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar' }))
+
+    await waitFor(() => expect(backend.pedidosA('POST /movimientos')).toHaveLength(1))
+    expect(backend.pedidosA('POST /movimientos')[0].cuerpo).toMatchObject({ monto: 1234.56 })
   })
 })

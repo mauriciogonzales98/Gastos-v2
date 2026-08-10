@@ -180,10 +180,40 @@
   padding: 0.5rem;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--bg);
+  /* `background-color` y no el atajo `background`: el atajo borraría la flecha que la
+     regla de `select` pone como `background-image`. */
+  background-color: var(--bg);
   color: var(--text-h);
   font: inherit;
   font-size: 0.9rem;
+}
+
+/* Espacio para la flecha propia, que se dibuja abajo. Va acá y no en la regla de
+   `select` porque el `padding` de arriba es un atajo y pisaría el `padding-right`. */
+.campo select {
+  padding-right: 2rem;
+}
+
+/* La flecha nativa la dibuja el sistema operativo: no sigue ni el color ni el radio del
+   resto de la página. Se apaga y se pone una propia, en SVG inline. */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%236b6375' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 0.7rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%239ca3af' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
+  }
+}
+
+.campo input:focus-visible,
+.campo select:focus-visible {
+  outline: 2px solid var(--accent-border);
+  outline-offset: 1px;
 }
 
 .pantalla-principal button {
@@ -195,6 +225,14 @@
   font: inherit;
   font-size: 0.85rem;
   cursor: pointer;
+}
+
+/* Botones que viven dentro del renglon de una lista: no compiten con la accion
+   principal de la pantalla, asi que ocupan lo justo. */
+.pantalla-principal button.compacto {
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
 }
 
 .pantalla-principal button.principal {
@@ -240,6 +278,79 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* --- Pestanas --- */
+
+.pestanas .tira {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.pantalla-principal .pestanas .tira button {
+  border: none;
+  border-radius: 8px 8px 0 0;
+  /* Reserva la franja del estado activo para que la etiqueta no salte al seleccionarla. */
+  border-bottom: 2px solid transparent;
+  font-size: 0.9rem;
+}
+
+.pantalla-principal .pestanas .tira button[aria-selected='true'] {
+  border-bottom-color: var(--accent);
+  background: transparent;
+  color: var(--accent);
+}
+
+/* El panel recibe foco al llegar con Tab desde la tira: el contorno se dibuja solo
+   cuando se navega con teclado, no al hacer click. */
+.pestanas [role='tabpanel'] {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  outline: none;
+}
+
+.pestanas [role='tabpanel']:focus-visible {
+  outline: 2px solid var(--accent-border);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+/* --- Modal de edicion --- */
+
+.modal {
+  width: min(38rem, calc(100vw - 2rem));
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.modal::backdrop {
+  background: rgba(8, 6, 13, 0.45);
+}
+
+.modal .contenido {
+  position: relative;
+}
+
+/* El formulario ya trae su propio marco: adentro del modal sobra. */
+.modal .formulario-movimiento {
+  border: none;
+  border-radius: 0;
+}
+
+.pantalla-principal .modal .cerrar {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.78rem;
 }
 
 /* --- Formulario de carga --- */
@@ -334,11 +445,6 @@
 }
 
 /* --- ABM de categorias --- */
-
-.panel-categorias .desplegar {
-  width: 100%;
-  text-align: left;
-}
 
 .panel-categorias .contenido {
   margin-top: 1rem;

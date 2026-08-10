@@ -9,6 +9,7 @@ import {
   type TipoCategoria,
 } from '../api/cliente'
 import { hoy } from '../utiles/fechas'
+import { aNumero, desdeNumero, formatearMonto } from '../utiles/montos'
 
 /** RF-33. Tiene que coincidir con `Movimiento.LargoMaximoDescripcion` del backend. */
 const LARGO_MAXIMO_DESCRIPCION = 120
@@ -48,7 +49,7 @@ export function FormularioMovimiento({
   useEffect(() => {
     if (enEdicion) {
       setTipo(enEdicion.tipo)
-      setMonto(String(enEdicion.monto))
+      setMonto(desdeNumero(enEdicion.monto))
       setMoneda(enEdicion.moneda)
       setCategoriaId(enEdicion.categoriaId)
       setFecha(enEdicion.fecha)
@@ -83,8 +84,8 @@ export function FormularioMovimiento({
       return
     }
 
-    const montoNumerico = Number(monto)
-    if (!monto || Number.isNaN(montoNumerico) || montoNumerico <= 0) {
+    const montoNumerico = aNumero(monto)
+    if (Number.isNaN(montoNumerico) || montoNumerico <= 0) {
       setError('El monto tiene que ser un número mayor a cero.')
       return
     }
@@ -149,14 +150,19 @@ export function FormularioMovimiento({
       <div className="campos">
         <div className="campo">
           <label htmlFor="monto">Monto</label>
+          {/*
+            type="text" y no "number": el navegador invalida cualquier valor con
+            separadores y devuelve `value` vacio, con lo que no habria forma de mostrar
+            los miles. El formato y el parseo los hace `utiles/montos`.
+          */}
           <input
             id="monto"
-            type="number"
+            type="text"
             inputMode="decimal"
-            step="0.01"
-            min="0.01"
+            autoComplete="off"
+            placeholder="0,00"
             value={monto}
-            onChange={(evento) => setMonto(evento.target.value)}
+            onChange={(evento) => setMonto(formatearMonto(evento.target.value))}
           />
         </div>
 

@@ -44,11 +44,12 @@ function backendConDashboard(datos: Dashboard = dashboard()): BackendFalso {
 }
 
 /**
- * Espera a que el dashboard esté armado. El bloque de una moneda sólo aparece cuando
- * llegaron las dos cosas que necesita: el catálogo y los totales.
+ * Abre la pestaña del dashboard y espera a que esté armado. El bloque de una moneda sólo
+ * aparece cuando llegaron las dos cosas que necesita: el catálogo y los totales.
  */
 async function abrirApp(backend: BackendFalso) {
   render(<App />)
+  await userEvent.click(await screen.findByRole('tab', { name: 'Dashboard' }))
   await screen.findByRole('article', { name: 'Dashboard en Pesos' })
   return backend
 }
@@ -143,10 +144,16 @@ describe('dashboard (RF-19 a RF-21)', () => {
 })
 
 describe('resumen del mes (RF-22)', () => {
+  // El resumen vive en la pestaña de movimientos, que es la pantalla de trabajo diario.
+  async function verResumen() {
+    await userEvent.click(screen.getByRole('tab', { name: 'Movimientos' }))
+    return screen.findByRole('region', { name: /Resumen en Pesos/ })
+  }
+
   it('AC-30: sale del mismo endpoint pedido con el mes actual', async () => {
     const backend = await abrirApp(backendConDashboard())
 
-    const resumen = await screen.findByRole('region', { name: /Resumen en Pesos/ })
+    const resumen = await verResumen()
     expect(within(resumen).getByText('$ 90.000,00')).toBeInTheDocument()
     expect(within(resumen).getByText('$ 1.500,00')).toBeInTheDocument()
 
@@ -166,7 +173,6 @@ describe('resumen del mes (RF-22)', () => {
 
   it('el resumen del mes no cambia cuando se filtra el dashboard', async () => {
     const backend = await abrirApp(backendConDashboard())
-    await screen.findByRole('region', { name: /Resumen en Pesos/ })
 
     await userEvent.selectOptions(screen.getByLabelText('Moneda (dashboard)'), 'USD')
 
@@ -175,7 +181,17 @@ describe('resumen del mes (RF-22)', () => {
     })
 
     // El resumen sigue mostrando las dos monedas del mes actual.
-    expect(screen.getByRole('region', { name: /Resumen en Pesos/ })).toBeInTheDocument()
+    await verResumen()
     expect(screen.getByRole('region', { name: /Resumen en Dolares/ })).toBeInTheDocument()
+  })
+
+  it('cambiar de pestaña no vuelve a pedir nada: los datos viven en la pantalla', async () => {
+    const backend = await abrirApp(backendConDashboard())
+    const pedidos = backend.pedidos.length
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Movimientos' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'Dashboard' }))
+
+    expect(backend.pedidos).toHaveLength(pedidos)
   })
 })
