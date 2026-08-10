@@ -194,6 +194,9 @@ misma funcionalidad, mejor puesta. El backend no se tocó.
 - [x] **Separador de miles en el monto** mientras se escribe (`utiles/montos.ts`).
 - [x] **Flecha propia en los `<select>`**, en SVG inline, con el color del tema.
 - [x] Tests: 71 de Vitest (eran 47). Backend intacto: 90/90 de xUnit.
+- [x] **Verificado a mano en el navegador** por el usuario (2026-08-10): las siete
+      correcciones se ven bien. Era lo único que no se podía cerrar desde los tests
+      (la flecha de los `select` y el modal son CSS, y jsdom no los renderiza).
 
 **Decisiones**:
 
@@ -306,7 +309,8 @@ dotnet ef database update --project backend/GestionGastos.Api
 | Frontend | `http://localhost:5173`, con proxy de `/api` al backend |
 
 Último estado verde (2026-08-10, al cerrar las correcciones de frontend): `dotnet test`
-**90/90**, `pnpm test` **71/71**, `pnpm lint` limpio, `pnpm build` OK.
+**90/90**, `pnpm test` **71/71**, `pnpm lint` limpio, `pnpm build` OK, y la app probada a
+mano en el navegador.
 
 > Las cuentas de prueba que quedan de verificar algo a mano contra MySQL se sacan con
 > `backend/db/003-borrar-usuarios-de-prueba.sql` (la API no expone baja de cuenta). Borra
